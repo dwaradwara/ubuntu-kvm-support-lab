@@ -79,7 +79,7 @@ The roadmap also requires scripting evidence in Bash, Python, and Perl.
 
 The advanced incidents use separate application, database, and monitoring VMs on an isolated libvirt network.
 
-\`\`\`text
+```text
 Client
   |
   v
@@ -95,7 +95,7 @@ PostgreSQL 14
   v
 vm-monitor-01 — 192.168.100.30
 Prometheus + Alertmanager
-\`\`\`
+```
 
 This architecture supports cross-VM troubleshooting across HTTP, Linux services, networking, PostgreSQL access control, storage, resource pressure, metrics, and alerting.
 
@@ -105,7 +105,7 @@ This architecture supports cross-VM troubleshooting across HTTP, Linux services,
 A multi-stage failure that progressed from an installer disable marker to datasource detection failure. Recovery required a local NoCloud seed, fresh cloud-init initialization, libvirt network recovery, SSH host-key handling, and offline qcow2 account recovery.
 
 ### INC012 — Multi-VM Database Storage Exhaustion
-Demonstrates a complete infrastructure-to-application failure chain. A dedicated PostgreSQL tablespace filesystem progressed from 8.03% usage to an 88.49% Prometheus warning and finally 100% exhaustion. PostgreSQL remained active but returned \`No space left on device\`, the web application degraded from HTTP 200 to HTTP 503, Alertmanager received the critical storage alert, and recovery restored HTTP 200 with the alert cleared.
+Demonstrates a complete infrastructure-to-application failure chain. A dedicated PostgreSQL tablespace filesystem progressed from 8.03% usage to an 88.49% Prometheus warning and finally 100% exhaustion. PostgreSQL remained active but returned `No space left on device`, the web application degraded from HTTP 200 to HTTP 503, Alertmanager received the critical storage alert, and recovery restored HTTP 200 with the alert cleared.
 
 ### INC013 / INC014 — Snap and AppArmor
 Uses kernel audit evidence to distinguish application failure from Linux security-policy enforcement and validates recovery with controlled A/B testing.
