@@ -942,3 +942,121 @@ Final rule cleanup validation        PASS
 ```
 
 **INC011 status: RESOLVED / VALIDATED**
+
+---
+
+# Phase 2 — Multi-VM Prometheus and Alertmanager Lifecycle
+
+## Upgrade Objective
+
+The original Prometheus incident was extended into a real cross-VM resource-pressure and alert-delivery scenario.
+
+Environment:
+
+- `vm-web-01` — `192.168.100.10`
+  - application tier
+  - node exporter on `:9100`
+- `vm-monitor-01` — `192.168.100.30`
+  - Prometheus on `:9090`
+  - Alertmanager on `:9093`
+
+Monitoring path:
+
+```text
+vm-web-01
+node_exporter :9100
+      |
+      v
+Prometheus :9090
+      |
+      v
+Alertmanager :9093
+```
+
+## Healthy Baseline
+
+Prometheus reported web-memory usage at:
+
+```text
+36.36%
+```
+
+The alert rule was healthy and inactive:
+
+```text
+WebHighMemory inactive ok
+```
+
+## Controlled Failure
+
+A bounded memory-pressure workload was started on `vm-web-01`.
+
+Memory usage increased to:
+
+```text
+57.82%
+```
+
+Prometheus transitioned the rule to:
+
+```text
+WebHighMemory firing 192.168.100.10:9100 warning
+```
+
+## Alertmanager Validation
+
+Alertmanager received the active alert:
+
+```text
+WebHighMemory 192.168.100.10:9100 warning active
+```
+
+This proved the monitoring path:
+
+```text
+resource pressure
+→ node exporter
+→ Prometheus
+→ WebHighMemory FIRING
+→ Alertmanager ACTIVE
+```
+
+## Investigation and Recovery
+
+The temporary memory-pressure workload was identified and removed.
+
+Prometheus then measured:
+
+```text
+36.15%
+```
+
+The rule recovered to:
+
+```text
+WebHighMemory state=inactive health=ok
+```
+
+Alertmanager confirmed:
+
+```text
+No active WebHighMemory alerts
+```
+
+## Phase 2 Result
+
+The lifecycle was:
+
+```text
+36.36% baseline
+→ controlled memory pressure
+→ 57.82%
+→ Prometheus FIRING
+→ Alertmanager ACTIVE
+→ workload removed
+→ 36.15%
+→ Prometheus INACTIVE
+→ Alertmanager CLEARED
+```
+
+This upgrade adds cross-VM observability, resource-pressure investigation, alert routing, remediation, and recovery validation to the original incident.

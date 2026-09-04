@@ -775,3 +775,107 @@ Final PostgreSQL health check        PASS
 ```
 
 **INC010 status: RESOLVED / VALIDATED**
+
+---
+
+# Phase 2 — Multi-VM PostgreSQL Policy Failure
+
+## Upgrade Objective
+
+The original PostgreSQL incident was extended from a single-host troubleshooting exercise into a cross-VM application/database failure.
+
+Environment:
+
+- `vm-web-01` — `192.168.100.10`
+  - Nginx
+  - PHP-FPM
+  - application health endpoint
+- `vm-db-01` — `192.168.100.20`
+  - PostgreSQL 14
+  - database: `enterprise_app`
+  - role: `enterprise_app`
+- private network: `192.168.100.0/24`
+
+Application dependency:
+
+```text
+Client
+  |
+  v
+vm-web-01
+Nginx + PHP-FPM
+  |
+  | TCP/5432
+  v
+vm-db-01
+PostgreSQL
+```
+
+## Healthy Baseline
+
+Before the failure, the application successfully connected from the web VM to PostgreSQL and returned:
+
+```text
+HTTP 200
+```
+
+The working access rule was:
+
+```text
+host enterprise_app enterprise_app 192.168.100.10/32 scram-sha-256
+```
+
+## Failure Injection
+
+A PostgreSQL HBA policy was introduced that rejected the application host.
+
+PostgreSQL itself remained active and TCP port `5432` remained reachable.
+
+The web application then degraded to:
+
+```text
+HTTP 503
+{"status":"degraded","database":"unreachable"}
+```
+
+## Evidence
+
+PostgreSQL logs identified the policy failure directly:
+
+```text
+FATAL: pg_hba.conf rejects connection for host "192.168.100.10",
+user "enterprise_app", database "enterprise_app"
+```
+
+This ruled out a database-process outage and isolated the issue to PostgreSQL access control.
+
+## Recovery
+
+The known-good `pg_hba.conf` configuration was restored and PostgreSQL was reloaded.
+
+The application recovered to:
+
+```text
+HTTP 200
+{"status":"ok","database":"enterprise_app","db_user":"enterprise_app","db_server":"192.168.100.20/32"}
+```
+
+## Phase 2 Troubleshooting Flow
+
+```text
+HTTP failure
+→ verify Nginx/PHP-FPM
+→ verify TCP/5432
+→ verify PostgreSQL active
+→ inspect PostgreSQL logs
+→ identify pg_hba.conf rejection
+→ restore policy
+→ reload PostgreSQL
+→ validate HTTP 200
+```
+
+## Phase 2 Result
+
+This upgrade demonstrates that successful network connectivity and an active PostgreSQL service do not guarantee application-level database access.
+
+The incident now covers cross-VM troubleshooting across application health, Linux services, TCP connectivity, PostgreSQL authentication policy, server logs, configuration rollback, and recovery validation.

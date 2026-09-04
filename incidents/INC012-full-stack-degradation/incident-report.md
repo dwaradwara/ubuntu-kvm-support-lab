@@ -1417,3 +1417,182 @@ Role removal validation               PASS
 ```
 
 **INC012 status: RESOLVED / VALIDATED**
+
+---
+
+# Phase 2 — Multi-VM Database Storage Exhaustion
+
+## Upgrade Objective
+
+The original full-stack incident was extended into a multi-VM storage exhaustion scenario spanning the web, database, and monitoring tiers.
+
+Environment:
+
+- `vm-web-01` — `192.168.100.10`
+  - Nginx
+  - PHP-FPM
+  - database-backed health endpoint
+- `vm-db-01` — `192.168.100.20`
+  - PostgreSQL 14
+  - database: `enterprise_app`
+  - dedicated incident disk: `/dev/vdb`
+  - tablespace mount: `/mnt/inc012-db`
+- `vm-monitor-01` — `192.168.100.30`
+  - Prometheus
+  - Alertmanager
+- private network: `192.168.100.0/24`
+
+Failure path:
+
+```text
+Client
+  |
+  v
+vm-web-01
+Nginx + PHP-FPM
+  |
+  | TCP/5432
+  v
+vm-db-01
+PostgreSQL
+  |
+  | /dev/vdb + node_exporter :9100
+  v
+vm-monitor-01
+Prometheus + Alertmanager
+```
+
+## Healthy Baseline
+
+The dedicated PostgreSQL tablespace filesystem initially reported:
+
+```text
+usage_percent = 8.03
+```
+
+The application returned:
+
+```text
+HTTP 200
+```
+
+and PostgreSQL writes succeeded through the web tier.
+
+The disk alert was healthy and inactive:
+
+```text
+DBDiskNearlyFull state=inactive health=ok
+```
+
+## Stage 1 — Capacity Warning
+
+Controlled data was written to the isolated database disk until Prometheus reported:
+
+```text
+usage_percent = 88.49
+```
+
+The alert transitioned to:
+
+```text
+DBDiskNearlyFull firing 192.168.100.20:9100 critical
+```
+
+At this point the application still returned:
+
+```text
+HTTP 200
+```
+
+This demonstrated that monitoring detected the capacity problem before customer-facing failure.
+
+## Stage 2 — Storage Exhaustion
+
+The isolated filesystem was then filled to:
+
+```text
+/dev/vdb  224M  219M  0  100%  /mnt/inc012-db
+```
+
+The DB VM root filesystem remained healthy at approximately 19% usage, and PostgreSQL itself remained active.
+
+A PostgreSQL write requiring additional blocks failed with:
+
+```text
+ERROR: could not extend file
+No space left on device
+HINT: Check free disk space.
+```
+
+The PostgreSQL server log recorded the same `ENOSPC` root cause.
+
+## Full-Stack Degradation
+
+With the database tablespace exhausted, the web application returned:
+
+```text
+HTTP 503
+{"status":"degraded","database":"write_failed"}
+```
+
+At the same time:
+
+```text
+Nginx       active
+PHP-FPM     active
+PostgreSQL  active
+```
+
+This proved that healthy processes do not guarantee a healthy application.
+
+Alertmanager showed the storage alert as active and critical.
+
+## Recovery
+
+The temporary filler data was removed from the dedicated incident filesystem.
+
+No PostgreSQL restart was required.
+
+Prometheus then reported:
+
+```text
+usage_percent = 8.27
+```
+
+The alert returned to:
+
+```text
+DBDiskNearlyFull state=inactive health=ok
+```
+
+Alertmanager confirmed there were no active `DBDiskNearlyFull` alerts.
+
+The application recovered to:
+
+```text
+HTTP 200
+```
+
+## Phase 2 Incident Lifecycle
+
+```text
+8.03% healthy baseline
+→ controlled storage consumption
+→ 88.49%
+→ DBDiskNearlyFull FIRING
+→ application still HTTP 200
+→ filesystem reaches 100%
+→ PostgreSQL write fails with ENOSPC
+→ application HTTP 503
+→ filler data removed
+→ 8.27%
+→ application HTTP 200
+→ Prometheus INACTIVE
+→ Alertmanager CLEARED
+```
+
+## Phase 2 Result
+
+This upgrade demonstrates end-to-end troubleshooting across application, Linux service, PostgreSQL, storage, virtualization, Prometheus, and Alertmanager layers.
+
+The key diagnostic lesson is that service status alone is insufficient. PostgreSQL continued accepting connections while writes failed because its dedicated tablespace filesystem had no free blocks. The customer-facing symptom appeared at the web tier, but the root cause was storage exhaustion on the database tier.

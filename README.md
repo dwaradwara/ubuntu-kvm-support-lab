@@ -37,9 +37,9 @@ The goal is not only to make a service work again, but to collect evidence, isol
 | [INC007](incidents/INC007-netplan-configuration-failure/incident-report.md) | Netplan Configuration Failure | Ubuntu Networking | Resolved |
 | [INC008](incidents/INC008-apt-dependency-failure/incident-report.md) | APT/dpkg Dependency Failure | Package Management | Resolved |
 | [INC009](incidents/INC009-cloud-init-datasource-recovery/incident-report.md) | cloud-init Datasource Recovery | Provisioning | Resolved |
-| [INC010](incidents/INC010-postgresql-connection-policy-failure/incident-report.md) | PostgreSQL Connection Policy Failure | Database / Access | Resolved |
-| [INC011](incidents/INC011-prometheus-alert-lifecycle/incident-report.md) | Prometheus Alert Lifecycle | Monitoring | Resolved |
-| [INC012](incidents/INC012-full-stack-degradation/incident-report.md) | Full-Stack Degradation | Application / Database | Resolved |
+| [INC010](incidents/INC010-postgresql-connection-policy-failure/incident-report.md) | Cross-VM PostgreSQL Connection Policy Failure | Database / Networking / Access | Resolved |
+| [INC011](incidents/INC011-prometheus-alert-lifecycle/incident-report.md) | Prometheus + Alertmanager Resource Alert Lifecycle | Monitoring / Observability | Resolved |
+| [INC012](incidents/INC012-full-stack-degradation/incident-report.md) | Multi-VM Database Storage Exhaustion | Application / Database / Storage / Monitoring | Resolved |
 | [INC013](incidents/INC013-snap-confinement-failure/incident-report.md) | Snap Strict-Confinement Failure | Snap / Security | Resolved |
 | [INC014](incidents/INC014-apparmor-policy-block/incident-report.md) | AppArmor Policy Block | Security | Resolved |
 | [INC015](incidents/INC015-cgroup-oom-kill/incident-report.md) | Controlled cgroup OOM Kill | Kernel / Memory | Resolved |
@@ -67,7 +67,7 @@ The roadmap also requires scripting evidence in Bash, Python, and Perl.
 - APT/dpkg dependency diagnosis
 - cloud-init datasource diagnosis and NoCloud recovery
 - PostgreSQL connectivity and `pg_hba.conf` troubleshooting
-- Prometheus alert generation and validation
+- Prometheus, node exporter, and Alertmanager alert lifecycle validation
 - Snap strict confinement and devmode comparison
 - AppArmor denial diagnosis and policy recovery
 - cgroup v2 memory limits and OOM-kill investigation
@@ -75,13 +75,37 @@ The roadmap also requires scripting evidence in Bash, Python, and Perl.
 - Bash, Python, and Perl support automation
 - Before/after validation and cleanup discipline
 
+## Multi-VM Enterprise Support Architecture
+
+The advanced incidents use separate application, database, and monitoring VMs on an isolated libvirt network.
+
+\`\`\`text
+Client
+  |
+  v
+vm-web-01 — 192.168.100.10
+Nginx + PHP-FPM
+  |
+  | PostgreSQL / TCP 5432
+  v
+vm-db-01 — 192.168.100.20
+PostgreSQL 14
+  |
+  | node_exporter :9100
+  v
+vm-monitor-01 — 192.168.100.30
+Prometheus + Alertmanager
+\`\`\`
+
+This architecture supports cross-VM troubleshooting across HTTP, Linux services, networking, PostgreSQL access control, storage, resource pressure, metrics, and alerting.
+
 ## Strongest Incident Examples
 
 ### INC009 — cloud-init Datasource Recovery
 A multi-stage failure that progressed from an installer disable marker to datasource detection failure. Recovery required a local NoCloud seed, fresh cloud-init initialization, libvirt network recovery, SSH host-key handling, and offline qcow2 account recovery.
 
-### INC012 — Full-Stack Degradation
-Demonstrates that healthy processes do not guarantee a healthy application. Nginx, the backend, and PostgreSQL remained active while a database schema regression produced an HTTP 503 at the application layer.
+### INC012 — Multi-VM Database Storage Exhaustion
+Demonstrates a complete infrastructure-to-application failure chain. A dedicated PostgreSQL tablespace filesystem progressed from 8.03% usage to an 88.49% Prometheus warning and finally 100% exhaustion. PostgreSQL remained active but returned \`No space left on device\`, the web application degraded from HTTP 200 to HTTP 503, Alertmanager received the critical storage alert, and recovery restored HTTP 200 with the alert cleared.
 
 ### INC013 / INC014 — Snap and AppArmor
 Uses kernel audit evidence to distinguish application failure from Linux security-policy enforcement and validates recovery with controlled A/B testing.
