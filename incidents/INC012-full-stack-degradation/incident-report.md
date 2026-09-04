@@ -1,0 +1,1419 @@
+# INC012 — Full-Stack Degradation Caused by Database Schema Regression
+
+## Summary
+
+A controlled full-stack degradation was reproduced and recovered on the Ubuntu KVM guest.
+
+The environment was built as a real application chain:
+
+```text
+Client
+  ↓
+Nginx :80
+  ↓
+INC012 backend :8000
+  ↓
+PostgreSQL :5432
+```
+
+Prometheus and node exporter remained active in parallel for host-level monitoring.
+
+A dedicated PostgreSQL database and application role were created:
+
+```text
+Database: inc012_db
+Role:     inc012_app
+```
+
+A simple `healthcheck` table stored the expected database response:
+
+```text
+1 | database healthy
+```
+
+A Python backend service was created and exposed on:
+
+```text
+127.0.0.1:8000
+```
+
+The backend queried PostgreSQL on every `/health` request.
+
+Nginx was configured to proxy:
+
+```text
+/inc012/
+```
+
+to the backend.
+
+The healthy end-to-end request returned:
+
+```text
+HTTP/1.1 200 OK
+{"status": "healthy", "database": "database healthy"}
+```
+
+The controlled failure was introduced by renaming the database table:
+
+```text
+healthcheck
+→ healthcheck_inc012_broken
+```
+
+No service was stopped.
+
+During the incident:
+
+```text
+Nginx          → active
+Backend        → active
+PostgreSQL     → active
+Prometheus     → active
+SELECT 1       → successful
+```
+
+However, the application query failed because the expected relation no longer existed.
+
+The same user-facing request then returned:
+
+```text
+HTTP/1.1 503 Service Unavailable
+```
+
+with:
+
+```text
+"status": "degraded"
+"database": "unavailable"
+"relation \"healthcheck\" does not exist"
+```
+
+This isolated the incident to an application/database schema dependency rather than a service outage.
+
+The table name was restored and the same endpoint immediately recovered to:
+
+```text
+HTTP/1.1 200 OK
+{"status": "healthy", "database": "database healthy"}
+```
+
+The temporary backend, database, role, and Nginx proxy configuration were removed after validation.
+
+Core services remained healthy after cleanup.
+
+---
+
+## Environment
+
+### Virtual Machine
+
+VM:
+
+```text
+ubuntu-guest-01
+```
+
+Guest hostname:
+
+```text
+lab-guest-01
+```
+
+Guest OS:
+
+```text
+Ubuntu Server 24.04.4 LTS
+```
+
+Primary IP:
+
+```text
+192.168.122.170
+```
+
+---
+
+## Existing Infrastructure Baseline
+
+Before building the application stack, existing services were checked:
+
+```bash
+systemctl is-active nginx
+systemctl is-active postgresql
+systemctl is-active prometheus
+systemctl is-active prometheus-node-exporter
+```
+
+Observed:
+
+```text
+nginx                    → active
+postgresql               → active
+prometheus               → active
+prometheus-node-exporter → active
+```
+
+Listening ports were inspected:
+
+```bash
+sudo ss -ltnp | grep -E ':80|:443|:5432|:8000|:8080|:9090|:9100'
+```
+
+Observed:
+
+```text
+Nginx        → port 80
+PostgreSQL   → 127.0.0.1:5432
+Prometheus   → port 9090
+Node exporter→ port 9100
+```
+
+Nothing was listening on:
+
+```text
+8000
+8080
+```
+
+This confirmed that no application backend existed yet.
+
+---
+
+## Nginx Baseline
+
+The default Nginx page was tested:
+
+```bash
+curl -i http://127.0.0.1/
+```
+
+The standard Nginx welcome page was returned successfully.
+
+This confirmed that the reverse-proxy layer was healthy before any INC012 changes were introduced.
+
+---
+
+## Python and PostgreSQL Driver Validation
+
+Python availability was checked:
+
+```bash
+command -v python3
+```
+
+Observed:
+
+```text
+/usr/bin/python3
+```
+
+The PostgreSQL Python driver was checked:
+
+```bash
+python3 -c \
+"import psycopg2; print('psycopg2 available')" \
+2>/dev/null || echo "psycopg2 not installed"
+```
+
+Observed initially:
+
+```text
+psycopg2 not installed
+```
+
+PostgreSQL itself was validated directly:
+
+```bash
+sudo -u postgres psql -Atqc "SELECT 1;"
+```
+
+Observed:
+
+```text
+1
+```
+
+This confirmed that PostgreSQL was healthy and only the Python client driver was missing.
+
+---
+
+## psycopg2 Installation
+
+The PostgreSQL Python driver was installed:
+
+```bash
+sudo apt-get install -y python3-psycopg2
+```
+
+Validation:
+
+```bash
+python3 -c \
+"import psycopg2; print('psycopg2 available')"
+```
+
+Observed:
+
+```text
+psycopg2 available
+```
+
+Port 8000 was also checked:
+
+```bash
+sudo ss -ltnp | grep 8000 || \
+echo "Port 8000 free"
+```
+
+Observed:
+
+```text
+Port 8000 free
+```
+
+This confirmed that the backend could safely bind to port 8000.
+
+---
+
+## INC012 Database Creation
+
+A dedicated application role was created:
+
+```bash
+sudo -u postgres psql -c \
+"CREATE ROLE inc012_app LOGIN PASSWORD 'Inc012Pass2026';"
+```
+
+Observed:
+
+```text
+CREATE ROLE
+```
+
+A dedicated database was created:
+
+```bash
+sudo -u postgres createdb \
+-O inc012_app \
+inc012_db
+```
+
+A simple health table was created:
+
+```bash
+sudo -u postgres psql -d inc012_db -c \
+"CREATE TABLE healthcheck (
+    id integer PRIMARY KEY,
+    status text NOT NULL
+);"
+```
+
+Observed:
+
+```text
+CREATE TABLE
+```
+
+A baseline row was inserted:
+
+```bash
+sudo -u postgres psql -d inc012_db -c \
+"INSERT INTO healthcheck
+ VALUES (1, 'database healthy');"
+```
+
+Observed:
+
+```text
+INSERT 0 1
+```
+
+Read access was granted to the application role:
+
+```bash
+sudo -u postgres psql -d inc012_db -c \
+"GRANT SELECT ON healthcheck TO inc012_app;"
+```
+
+Observed:
+
+```text
+GRANT
+```
+
+---
+
+## Application Database Connectivity
+
+The application role was tested directly through TCP:
+
+```bash
+PGPASSWORD='Inc012Pass2026' \
+psql -h 127.0.0.1 \
+-U inc012_app \
+-d inc012_db \
+-c "SELECT * FROM healthcheck;"
+```
+
+Observed:
+
+```text
+ id |      status
+----+------------------
+  1 | database healthy
+(1 row)
+```
+
+This proved:
+
+```text
+Application credentials → valid
+Database                → reachable
+Table                    → present
+SELECT permission        → valid
+Database data            → healthy
+```
+
+---
+
+## Backend Application Creation
+
+A Python backend was created at:
+
+```text
+/usr/local/bin/inc012-backend
+```
+
+The application used:
+
+```python
+psycopg2
+```
+
+to connect to:
+
+```text
+host     → 127.0.0.1
+port     → 5432
+database → inc012_db
+user     → inc012_app
+```
+
+The backend queried:
+
+```sql
+SELECT status
+FROM healthcheck
+WHERE id = 1;
+```
+
+If the query succeeded, it returned:
+
+```json
+{
+  "status": "healthy",
+  "database": "database healthy"
+}
+```
+
+with:
+
+```text
+HTTP 200
+```
+
+If the database query failed, it returned:
+
+```json
+{
+  "status": "degraded",
+  "database": "unavailable",
+  "error": "<database error>"
+}
+```
+
+with:
+
+```text
+HTTP 503
+```
+
+The backend listened on:
+
+```text
+127.0.0.1:8000
+```
+
+---
+
+## Backend Syntax and Permission Validation
+
+The backend file initially needed `/usr/local/bin` to exist.
+
+The directory was created:
+
+```bash
+sudo mkdir -p /usr/local/bin
+```
+
+The backend file was then created successfully.
+
+A Python compile check was run:
+
+```bash
+sudo python3 -m py_compile \
+/usr/local/bin/inc012-backend
+```
+
+No output was returned.
+
+This confirmed valid Python syntax.
+
+The file was made executable:
+
+```bash
+sudo chmod 755 \
+/usr/local/bin/inc012-backend
+```
+
+Validation:
+
+```bash
+ls -l /usr/local/bin/inc012-backend
+```
+
+Observed executable permissions:
+
+```text
+-rwxr-xr-x
+```
+
+---
+
+## Backend systemd Service
+
+A systemd unit was created:
+
+```text
+/etc/systemd/system/inc012-backend.service
+```
+
+The service definition used:
+
+```ini
+[Unit]
+Description=INC012 PostgreSQL-backed application
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/inc012-backend
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Systemd configuration was reloaded:
+
+```bash
+sudo systemctl daemon-reload
+```
+
+The backend was enabled and started:
+
+```bash
+sudo systemctl enable --now \
+inc012-backend.service
+```
+
+Service validation:
+
+```bash
+systemctl status \
+inc012-backend.service \
+--no-pager -l
+```
+
+Observed:
+
+```text
+Active: active (running)
+```
+
+Port validation:
+
+```bash
+sudo ss -ltnp | grep 8000
+```
+
+Observed:
+
+```text
+127.0.0.1:8000
+```
+
+---
+
+## Backend Health Validation
+
+The backend was tested directly:
+
+```bash
+curl -i \
+http://127.0.0.1:8000/health
+```
+
+Observed:
+
+```text
+HTTP/1.0 200 OK
+Content-Type: application/json
+```
+
+Response:
+
+```json
+{"status": "healthy", "database": "database healthy"}
+```
+
+This proved the backend-to-database path was working before Nginx was added.
+
+---
+
+## Nginx Configuration Backup
+
+The active Nginx site was identified and backed up.
+
+The default site was backed up to:
+
+```text
+/etc/nginx/sites-available/default.inc012.bak
+```
+
+using:
+
+```bash
+sudo cp \
+/etc/nginx/sites-available/default \
+/etc/nginx/sites-available/default.inc012.bak
+```
+
+The existing configuration was inspected before modification.
+
+---
+
+## Nginx Reverse Proxy Configuration
+
+A dedicated proxy path was added:
+
+```nginx
+location /inc012/ {
+    proxy_pass http://127.0.0.1:8000/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+}
+```
+
+This created the end-to-end path:
+
+```text
+Client
+→ Nginx :80
+→ 127.0.0.1:8000
+→ PostgreSQL :5432
+```
+
+---
+
+## Nginx Configuration Validation
+
+Nginx syntax was checked before reload:
+
+```bash
+sudo nginx -t
+```
+
+Observed:
+
+```text
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+```
+
+Nginx was then reloaded:
+
+```bash
+sudo systemctl reload nginx
+```
+
+---
+
+## End-to-End Healthy Baseline
+
+The full application path was tested:
+
+```bash
+curl -i \
+http://127.0.0.1/inc012/health
+```
+
+Observed:
+
+```text
+HTTP/1.1 200 OK
+Server: nginx/1.24.0 (Ubuntu)
+Content-Type: application/json
+```
+
+Response:
+
+```json
+{"status": "healthy", "database": "database healthy"}
+```
+
+This established the healthy full-stack baseline:
+
+```text
+Client
+→ Nginx
+→ backend
+→ PostgreSQL
+→ healthcheck table
+→ HTTP 200
+```---
+
+## Controlled Schema Regression
+
+Before introducing the failure, the application stack services were checked:
+
+```bash
+systemctl is-active \
+nginx \
+inc012-backend \
+postgresql \
+prometheus
+```
+
+All relevant services were active.
+
+The expected application table was also confirmed:
+
+```bash
+sudo -u postgres psql \
+-d inc012_db \
+-c "\dt healthcheck"
+```
+
+Observed:
+
+```text
+Schema |    Name     | Type  | Owner
+-------+-------------+-------+----------
+public | healthcheck | table | postgres
+```
+
+This confirmed the application dependency existed before the incident.
+
+---
+
+## Failure Injection
+
+The controlled failure was introduced by renaming the table used by the backend:
+
+```bash
+sudo -u postgres psql \
+-d inc012_db \
+-c \
+"ALTER TABLE healthcheck
+ RENAME TO healthcheck_inc012_broken;"
+```
+
+Observed:
+
+```text
+ALTER TABLE
+```
+
+The PostgreSQL server itself was then checked:
+
+```bash
+sudo -u postgres psql -Atqc \
+"SELECT 1;"
+```
+
+Observed:
+
+```text
+1
+```
+
+This proved PostgreSQL itself remained healthy.
+
+---
+
+## Service Health During Degradation
+
+The core application services were checked:
+
+```bash
+systemctl is-active \
+nginx \
+inc012-backend \
+postgresql
+```
+
+Observed:
+
+```text
+active
+active
+active
+```
+
+This was important because it showed that the incident was not caused by:
+
+```text
+Nginx stopping
+Backend process stopping
+PostgreSQL stopping
+TCP listener loss
+```
+
+All three application layers remained operational at the process level.
+
+---
+
+## User-Facing Degradation
+
+The exact same Nginx endpoint used during the healthy baseline was tested:
+
+```bash
+curl -i \
+http://127.0.0.1/inc012/health
+```
+
+Observed:
+
+```text
+HTTP/1.1 503 Service Unavailable
+Server: nginx/1.24.0 (Ubuntu)
+Content-Type: application/json
+```
+
+The response body reported:
+
+```json
+{
+  "status": "degraded",
+  "database": "unavailable",
+  "error": "relation \"healthcheck\" does not exist"
+}
+```
+
+The SQL error also referenced the backend query:
+
+```text
+SELECT status FROM healthcheck WHERE id = 1;
+```
+
+This proved that the request successfully passed through:
+
+```text
+Client
+→ Nginx
+→ backend
+```
+
+but failed when the backend attempted to access its expected PostgreSQL relation.
+
+---
+
+## Degradation Evidence
+
+During the incident:
+
+```text
+Nginx process                → active
+Backend process              → active
+PostgreSQL process           → active
+PostgreSQL basic query       → successful
+Application endpoint         → HTTP 503
+Database dependency          → unavailable to application
+Expected relation            → missing
+```
+
+The important distinction was:
+
+```text
+Database server healthy
+≠
+Application database dependency healthy
+```
+
+PostgreSQL could successfully process:
+
+```sql
+SELECT 1;
+```
+
+while the application-specific query failed because the required relation no longer existed under the expected name.
+
+---
+
+## Root Cause Analysis
+
+The backend application contained the query:
+
+```sql
+SELECT status
+FROM healthcheck
+WHERE id = 1;
+```
+
+The controlled schema change renamed:
+
+```text
+healthcheck
+```
+
+to:
+
+```text
+healthcheck_inc012_broken
+```
+
+The backend was not changed to use the new relation name.
+
+Therefore, the application continued querying:
+
+```text
+healthcheck
+```
+
+which no longer existed.
+
+Failure chain:
+
+```text
+Client sends /inc012/health
+→ Nginx proxies request to backend
+→ backend process receives request
+→ backend connects successfully to PostgreSQL
+→ backend executes SELECT against healthcheck
+→ PostgreSQL cannot find relation
+→ psycopg2 raises database error
+→ backend marks response degraded
+→ backend returns HTTP 503
+→ Nginx forwards HTTP 503 to client
+```
+
+The root cause was therefore:
+
+```text
+Database schema regression
+```
+
+not:
+
+```text
+Nginx outage
+Backend outage
+PostgreSQL outage
+Authentication failure
+Network failure
+```
+
+---
+
+## Recovery
+
+The table name was restored:
+
+```bash
+sudo -u postgres psql \
+-d inc012_db \
+-c \
+"ALTER TABLE healthcheck_inc012_broken
+ RENAME TO healthcheck;"
+```
+
+The expected relation was then checked:
+
+```bash
+sudo -u postgres psql \
+-d inc012_db \
+-c "\dt healthcheck"
+```
+
+Observed:
+
+```text
+Schema |    Name     | Type  | Owner
+-------+-------------+-------+----------
+public | healthcheck | table | postgres
+```
+
+This confirmed that the expected application schema had been restored.
+
+---
+
+## Direct Database Recovery Validation
+
+The application role was tested again:
+
+```bash
+PGPASSWORD='Inc012Pass2026' \
+psql -h 127.0.0.1 \
+-U inc012_app \
+-d inc012_db \
+-c "SELECT * FROM healthcheck;"
+```
+
+Observed:
+
+```text
+ id |      status
+----+------------------
+  1 | database healthy
+(1 row)
+```
+
+This proved that:
+
+```text
+Application authentication → working
+Database access            → working
+Table                       → restored
+SELECT permission           → working
+Expected data               → available
+```
+
+---
+
+## End-to-End Recovery Validation
+
+The exact same Nginx endpoint was tested again:
+
+```bash
+curl -i \
+http://127.0.0.1/inc012/health
+```
+
+Observed:
+
+```text
+HTTP/1.1 200 OK
+Server: nginx/1.24.0 (Ubuntu)
+Content-Type: application/json
+```
+
+Response:
+
+```json
+{"status": "healthy", "database": "database healthy"}
+```
+
+No changes were required to:
+
+```text
+Nginx
+backend process
+PostgreSQL service
+networking
+application credentials
+```
+
+Only the database schema dependency was restored.
+
+This strongly confirmed the root cause.
+
+---
+
+## Post-Recovery Service Validation
+
+The infrastructure services were checked:
+
+```bash
+systemctl is-active \
+nginx \
+inc012-backend \
+postgresql \
+prometheus
+```
+
+Observed:
+
+```text
+active
+active
+active
+active
+```
+
+This confirmed that all core components remained healthy after recovery.
+
+---
+
+## Incident Comparison
+
+### Before Failure
+
+```text
+Nginx             active
+Backend           active
+PostgreSQL        active
+healthcheck table present
+Application query succeeds
+HTTP response     200
+Application state healthy
+```
+
+### During Failure
+
+```text
+Nginx             active
+Backend           active
+PostgreSQL        active
+healthcheck table renamed
+PostgreSQL SELECT 1 succeeds
+Application query fails
+HTTP response     503
+Application state degraded
+```
+
+### After Recovery
+
+```text
+Nginx             active
+Backend           active
+PostgreSQL        active
+healthcheck table restored
+Application query succeeds
+HTTP response     200
+Application state healthy
+```
+
+This showed a complete:
+
+```text
+healthy
+→ degraded
+→ recovered
+```
+
+full-stack lifecycle.
+
+---
+
+## Cleanup
+
+After recovery was validated, the temporary INC012 environment was removed.
+
+The original Nginx configuration was restored:
+
+```bash
+sudo cp \
+/etc/nginx/sites-available/default.inc012.bak \
+/etc/nginx/sites-available/default
+```
+
+Nginx syntax was validated:
+
+```bash
+sudo nginx -t
+```
+
+Observed:
+
+```text
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+```
+
+Nginx was reloaded:
+
+```bash
+sudo systemctl reload nginx
+```
+
+The temporary Nginx backup was removed:
+
+```bash
+sudo rm \
+/etc/nginx/sites-available/default.inc012.bak
+```
+
+---
+
+## Backend Cleanup
+
+The temporary backend service was disabled and stopped:
+
+```bash
+sudo systemctl disable --now \
+inc012-backend.service
+```
+
+The systemd unit was removed:
+
+```bash
+sudo rm \
+/etc/systemd/system/inc012-backend.service
+```
+
+The backend executable was removed:
+
+```bash
+sudo rm \
+/usr/local/bin/inc012-backend
+```
+
+Systemd state was refreshed:
+
+```bash
+sudo systemctl daemon-reload
+```
+
+---
+
+## Database Cleanup
+
+The temporary database was removed:
+
+```bash
+sudo -u postgres dropdb inc012_db
+```
+
+The temporary role was removed:
+
+```bash
+sudo -u postgres psql -c \
+"DROP ROLE inc012_app;"
+```
+
+Observed:
+
+```text
+DROP ROLE
+```
+
+---
+
+## Final Core Service Validation
+
+The remaining infrastructure services were checked:
+
+```bash
+systemctl is-active \
+nginx \
+postgresql \
+prometheus \
+prometheus-node-exporter
+```
+
+Observed:
+
+```text
+active
+active
+active
+active
+```
+
+This confirmed that the controlled INC012 environment was removed without damaging the base lab services.
+
+---
+
+## Backend Cleanup Validation
+
+The temporary backend service was checked:
+
+```bash
+systemctl status \
+inc012-backend.service \
+--no-pager -l
+```
+
+Observed:
+
+```text
+Unit inc012-backend.service could not be found.
+```
+
+This confirmed that the temporary systemd unit had been removed successfully.
+
+---
+
+## Database Cleanup Validation
+
+The temporary database was checked:
+
+```bash
+sudo -u postgres psql -Atqc \
+"SELECT datname
+ FROM pg_database
+ WHERE datname='inc012_db';"
+```
+
+Observed:
+
+```text
+No output
+```
+
+The temporary role was checked:
+
+```bash
+sudo -u postgres psql -Atqc \
+"SELECT rolname
+ FROM pg_roles
+ WHERE rolname='inc012_app';"
+```
+
+Observed:
+
+```text
+No output
+```
+
+This confirmed that both INC012 database objects had been removed.
+
+---
+
+## Final Architecture State
+
+The temporary INC012 application stack was removed.
+
+The persistent lab infrastructure remained:
+
+```text
+Nginx                    → active
+PostgreSQL               → active
+Prometheus               → active
+Prometheus node exporter → active
+```
+
+Temporary components removed:
+
+```text
+INC012 backend service   → removed
+INC012 backend binary    → removed
+INC012 Nginx proxy block → removed
+INC012 database          → removed
+INC012 role              → removed
+```
+
+---
+
+## Technical Findings
+
+1. A full-stack application can return an error even when every major service process is running.
+2. Process health and application health are not the same thing.
+3. PostgreSQL successfully answering `SELECT 1` does not prove that an application's required schema is intact.
+4. Application-specific database queries should be tested during database incident investigation.
+5. Schema regressions can produce user-facing failures without causing a database outage.
+6. Returning HTTP `503 Service Unavailable` from a degraded backend provides a clear operational signal.
+7. Nginx successfully returning a backend-generated 503 proves that the reverse-proxy path can still be functioning during an application failure.
+8. Comparing the exact same endpoint before, during, and after an incident provides strong evidence of causality.
+9. A direct database query using the application credentials helps separate authentication problems from schema problems.
+10. Infrastructure troubleshooting should identify the failing layer instead of restarting healthy services blindly.
+11. Configuration backups should be created before modifying Nginx.
+12. `nginx -t` should be run before every configuration reload.
+13. Temporary incident infrastructure should be removed after validation.
+14. Cleanup should preserve unrelated healthy services.
+15. End-to-end validation is stronger than checking individual processes alone.
+
+---
+
+## Support Troubleshooting Method
+
+The workflow used was:
+
+```text
+Inspect existing infrastructure
+→ validate Nginx
+→ validate PostgreSQL
+→ validate Prometheus
+→ identify missing application layer
+→ install PostgreSQL Python driver
+→ create dedicated application database
+→ create application role
+→ create healthcheck table
+→ validate application database access
+→ create Python backend
+→ validate Python syntax
+→ create systemd service
+→ validate backend port and health
+→ back up Nginx configuration
+→ configure Nginx reverse proxy
+→ validate Nginx syntax
+→ establish end-to-end HTTP 200 baseline
+→ verify all services healthy
+→ introduce controlled schema regression
+→ verify PostgreSQL remains healthy
+→ verify services remain active
+→ reproduce HTTP 503
+→ inspect application database error
+→ identify missing relation as root cause
+→ restore schema
+→ validate direct database access
+→ retest exact user-facing endpoint
+→ confirm HTTP 200 recovery
+→ restore Nginx configuration
+→ remove temporary backend
+→ remove temporary database and role
+→ validate core services
+→ validate temporary resources removed
+```
+
+---
+
+## Final Status
+
+```text
+Existing Nginx validation             PASS
+Existing PostgreSQL validation        PASS
+Existing Prometheus validation        PASS
+Python availability                   PASS
+psycopg2 dependency installation      PASS
+Port 8000 availability                PASS
+Application role creation             PASS
+Application database creation         PASS
+Healthcheck table creation            PASS
+Application DB access validation      PASS
+Backend creation                      PASS
+Backend syntax validation             PASS
+Backend executable permissions        PASS
+systemd backend creation              PASS
+Backend startup                       PASS
+Port 8000 validation                  PASS
+Direct backend health check           PASS
+Nginx configuration backup            PASS
+Reverse proxy configuration           PASS
+Nginx syntax validation               PASS
+End-to-end healthy baseline           PASS
+Schema regression reproduction        PASS
+PostgreSQL health during failure      PASS
+Service health during failure         PASS
+HTTP 503 degradation validation       PASS
+Database error identification         PASS
+Root cause identification             PASS
+Schema restoration                    PASS
+Application DB recovery validation    PASS
+HTTP 200 recovery validation          PASS
+Post-recovery service validation      PASS
+Nginx restoration                     PASS
+Temporary backend cleanup             PASS
+Temporary database cleanup            PASS
+Temporary role cleanup                PASS
+Core service final validation         PASS
+Backend removal validation            PASS
+Database removal validation           PASS
+Role removal validation               PASS
+```
+
+**INC012 status: RESOLVED / VALIDATED**
