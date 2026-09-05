@@ -47,7 +47,7 @@ The goal is not only to make a service work again, but to collect evidence, isol
 
 ## Support Automation
 
-The roadmap also requires scripting evidence in Bash, Python, and Perl.
+The repository includes support automation implemented in Bash, Python, and Perl.
 
 | Script | Language | Purpose |
 |---|---|---|
@@ -182,6 +182,15 @@ Generated bundles are excluded from Git through `.gitignore`.
 Start the enterprise VMs and run:
 
 ```bash
+./scripts/enterprise_support_bundle.sh
+```
+
+The default lab addresses can also be overridden without editing the script:
+
+```bash
+WEB_IP=192.168.100.110 \
+DB_IP=192.168.100.120 \
+MON_IP=192.168.100.130 \
 ./scripts/enterprise_support_bundle.sh
 ```
 
