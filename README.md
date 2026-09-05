@@ -51,6 +51,7 @@ The roadmap also requires scripting evidence in Bash, Python, and Perl.
 
 | Script | Language | Purpose |
 |---|---|---|
+| [`enterprise_support_bundle.sh`](scripts/enterprise_support_bundle.sh) | Bash | Collect cross-VM application, database, monitoring, and libvirt diagnostic evidence |
 | [`kvm_diagnostic.sh`](scripts/kvm_diagnostic.sh) | Bash | Collect KVM/libvirt host diagnostic information |
 | [`ubuntu_health.sh`](scripts/ubuntu_health.sh) | Bash | Produce a quick Ubuntu system-health assessment |
 | [`vm_snapshot.sh`](scripts/vm_snapshot.sh) | Bash | Manage VM snapshot create/list/restore/delete lifecycle |
