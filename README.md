@@ -176,6 +176,37 @@ The collector validates three HTTP health checks and three SSH targets, records 
 
 Generated bundles are excluded from Git through `.gitignore`.
 
+### How to Run
+
+Start the enterprise VMs and run:
+
+```bash
+./scripts/enterprise_support_bundle.sh
+```
+
+A successful healthy run reports:
+
+```text
+[8/8] Complete
+Bundle status: PASS
+```
+
+The generated manifest records:
+
+```text
+status=PASS
+http_checks_ok=3/3
+ssh_checks_ok=3/3
+```
+
+Validate the generated archive with:
+
+```bash
+sha256sum -c support-bundles/enterprise-support-<timestamp>.tar.gz.sha256
+```
+
+The resulting archive provides one consolidated evidence package for application, database, monitoring, networking, Linux service, and libvirt/KVM troubleshooting.
+
 ## Incident Documentation Standard
 
 Incident reports are intended to preserve:
