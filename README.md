@@ -1,5 +1,8 @@
 # Ubuntu/KVM Production Support Lab
 
+[![Validate Support Automation](https://github.com/dwaradwara/ubuntu-kvm-support-lab/actions/workflows/validate.yml/badge.svg)](https://github.com/dwaradwara/ubuntu-kvm-support-lab/actions/workflows/validate.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A hands-on Ubuntu/KVM production-support lab built around **16 controlled failure, diagnosis, recovery, and validation scenarios**.
 
 The project demonstrates evidence-driven troubleshooting across **KVM/QEMU, libvirt, Linux services, networking, storage, PostgreSQL, monitoring, security, and kernel/resource layers**.
