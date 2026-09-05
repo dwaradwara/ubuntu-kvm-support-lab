@@ -1732,4 +1732,3 @@ journalctl -u postgresql --no-pager -o short-iso
 - [Prometheus: Alerting rules](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/)
 - [Prometheus: Monitoring Linux host metrics with Node Exporter](https://prometheus.io/docs/guides/node-exporter/)
 - [Prometheus Alertmanager: Configuration](https://prometheus.io/docs/alerting/latest/configuration/)
-
