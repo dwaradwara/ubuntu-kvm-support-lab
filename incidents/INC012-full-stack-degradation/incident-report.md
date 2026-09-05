@@ -1596,3 +1596,140 @@ HTTP 200
 This upgrade demonstrates end-to-end troubleshooting across application, Linux service, PostgreSQL, storage, virtualization, Prometheus, and Alertmanager layers.
 
 The key diagnostic lesson is that service status alone is insufficient. PostgreSQL continued accepting connections while writes failed because its dedicated tablespace filesystem had no free blocks. The customer-facing symptom appeared at the web tier, but the root cause was storage exhaustion on the database tier.
+
+---
+
+## Phase 3 Support Review
+
+### Before / Failure / After Comparison
+
+| Check | Healthy Baseline | Failure | Recovery |
+| --- | --- | --- | --- |
+| DB filesystem usage | 8.03% | 100% | 8.27% |
+| Prometheus storage alert | inactive | FIRING | inactive |
+| Alertmanager | no active alert | ACTIVE critical alert | CLEARED |
+| PostgreSQL service | active | active | active |
+| PostgreSQL writes | successful | ENOSPC / write failure | successful |
+| Web application | HTTP 200 | HTTP 503 | HTTP 200 |
+| Root filesystem | healthy | healthy | healthy |
+| Dedicated tablespace | healthy | exhausted | recovered |
+
+### Customer-Facing Symptom
+
+A customer could report:
+
+```text
+The application is online but database-backed operations are failing.
+The web endpoint returns HTTP 503 even though the web server and
+database services still appear to be running.
+```
+
+The investigation separates service availability from application health:
+
+```text
+HTTP 503
+→ verify Nginx/PHP-FPM
+→ verify database reachability
+→ verify PostgreSQL service
+→ test database write
+→ inspect PostgreSQL error
+→ identify ENOSPC
+→ inspect database tablespace filesystem
+→ correlate Prometheus/Alertmanager evidence
+```
+
+### Example Support Ticket Update
+
+```text
+Status: Resolved
+
+The application degraded from HTTP 200 to HTTP 503 because the
+dedicated PostgreSQL tablespace filesystem reached 100% capacity.
+
+Nginx, PHP-FPM, and PostgreSQL remained active, but PostgreSQL writes
+failed with 'No space left on device'. Monitoring had detected the
+capacity condition earlier at 88.49% usage and raised the
+DBDiskNearlyFull alert.
+
+Temporary filler data was removed from the isolated database disk.
+No PostgreSQL restart was required.
+
+Final validation confirmed:
+- filesystem usage returned to 8.27%
+- PostgreSQL writes succeeded
+- application returned HTTP 200
+- Prometheus alert became inactive
+- Alertmanager alert cleared
+```
+
+### What I Would Do Differently
+
+1. Capture timestamps at every monitoring, failure, remediation, and validation milestone.
+2. Record filesystem block and inode usage before generating load.
+3. Capture the exact Prometheus query result at every alert transition.
+4. Preserve the PostgreSQL log excerpt containing the first ENOSPC event.
+5. Define warning and critical capacity thresholds before the test.
+6. Add automated cleanup safeguards so filler data cannot affect the VM root filesystem.
+7. Validate both reads and writes because database connectivity alone does not prove database health.
+
+### Prevention and Operational Controls
+
+Monitor both block capacity and inode capacity:
+
+```bash
+df -hT /mnt/inc012-db
+df -i /mnt/inc012-db
+```
+
+Identify large consumers before the filesystem reaches a critical state:
+
+```bash
+sudo du -xhd1 /mnt/inc012-db | sort -h
+```
+
+Verify PostgreSQL service and connectivity separately from write capability:
+
+```bash
+systemctl is-active postgresql
+pg_isready
+```
+
+A database-backed application health check should also perform a
+controlled query or write-capability test where appropriate.
+
+Prometheus should alert before exhaustion using filesystem metrics such as:
+
+```text
+node_filesystem_avail_bytes
+node_filesystem_size_bytes
+```
+
+Operational thresholds should leave enough time for investigation and
+capacity remediation before PostgreSQL reaches ENOSPC.
+
+### Timestamp Note
+
+Exact per-command timestamps were not preserved consistently during the
+original INC012 execution. They are therefore not reconstructed.
+
+Future captures should record milestones with:
+
+```bash
+date -Is
+```
+
+and preserve timestamped service/database evidence with:
+
+```bash
+journalctl -u postgresql --no-pager -o short-iso
+```
+
+### Relevant Documentation
+
+- [Ubuntu Server: About Logical Volume Management](https://documentation.ubuntu.com/server/explanation/storage/about-lvm/index.html)
+- [PostgreSQL 14: Tablespaces](https://www.postgresql.org/docs/14/manage-ag-tablespaces.html)
+- [Prometheus: Alerting overview](https://prometheus.io/docs/alerting/latest/overview/)
+- [Prometheus: Alerting rules](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/)
+- [Prometheus: Monitoring Linux host metrics with Node Exporter](https://prometheus.io/docs/guides/node-exporter/)
+- [Prometheus Alertmanager: Configuration](https://prometheus.io/docs/alerting/latest/configuration/)
+
