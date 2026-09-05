@@ -1,3 +1,7 @@
 
 # Generated enterprise support bundles
 support-bundles/
+
+# Python bytecode
+__pycache__/
+*.py[cod]

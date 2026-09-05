@@ -1,0 +1,48 @@
+name: Validate Support Automation
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install validation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck perl
+
+      - name: Validate Bash syntax
+        run: |
+          bash -n scripts/kvm_diagnostic.sh
+          bash -n scripts/ubuntu_health.sh
+          bash -n scripts/vm_snapshot.sh
+          bash -n scripts/enterprise_support_bundle.sh
+
+      - name: Run ShellCheck
+        run: |
+          shellcheck scripts/kvm_diagnostic.sh
+          shellcheck scripts/ubuntu_health.sh
+          shellcheck scripts/vm_snapshot.sh
+          shellcheck scripts/enterprise_support_bundle.sh
+
+      - name: Validate Python
+        run: |
+          python3 -m py_compile scripts/kvm_monitor.py
+
+      - name: Validate Perl
+        run: |
+          perl -c scripts/log_parser.pl
+
+      - name: Validate repository whitespace
+        run: |
+          git diff --check
