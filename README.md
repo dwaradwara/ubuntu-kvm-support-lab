@@ -139,12 +139,42 @@ ubuntu-kvm-support-lab/
 │   ├── INC015-cgroup-oom-kill/
 │   └── INC016-udp-receive-buffer-overflow/
 └── scripts/
+    ├── enterprise_support_bundle.sh
     ├── kvm_diagnostic.sh
     ├── ubuntu_health.sh
     ├── vm_snapshot.sh
     ├── kvm_monitor.py
     └── log_parser.pl
 ```
+
+## Enterprise Support Bundle Automation
+
+The repository includes `scripts/enterprise_support_bundle.sh`, a cross-VM diagnostic collector for the enterprise support environment.
+
+It collects evidence from:
+
+- `vm-web-01` — `192.168.100.10`
+- `vm-db-01` — `192.168.100.20`
+- `vm-monitor-01` — `192.168.100.30`
+- the libvirt/KVM host
+
+The bundle captures system state, networking, listening sockets, failed services, filesystem usage, application health, PostgreSQL readiness, Prometheus targets and alerts, Alertmanager status, and libvirt VM/network information.
+
+Each run generates:
+
+```text
+enterprise-support-<timestamp>/
+├── host/
+├── web/
+├── db/
+├── monitor/
+├── summary.txt
+└── manifest.txt
+```
+
+The collector validates three HTTP health checks and three SSH targets, records a `PASS` or `WARN` result in the manifest, creates a compressed `.tar.gz` archive, and generates a SHA256 checksum.
+
+Generated bundles are excluded from Git through `.gitignore`.
 
 ## Incident Documentation Standard
 
