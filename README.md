@@ -54,6 +54,8 @@ PostgreSQL remained active throughout the failure, proving that **process state 
 
 **Why it matters:** demonstrates multi-VM troubleshooting across Linux storage, PostgreSQL, application health, Prometheus, and Alertmanager.
 
+**Published write-up:** [When “Active” Doesn’t Mean Healthy: Debugging PostgreSQL ENOSPC Across a Multi-VM Linux Stack](https://dev.to/dwaradwara/when-active-doesnt-mean-healthy-debugging-postgresql-enospc-across-a-multi-vm-linux-stack-35k6)
+
 ---
 
 ### [INC016 — UDP Receive-Buffer Overflow](incidents/INC016-udp-receive-buffer-overflow/incident-report.md)
