@@ -1,232 +1,186 @@
-# ubuntu-kvm-support-lab
+# Ubuntu/KVM Production Support Lab
 
-Self-directed Ubuntu/KVM production-support lab built around controlled failure, diagnosis, recovery, and verification scenarios relevant to Canonical Linux support engineering.
+A hands-on Ubuntu/KVM production-support lab built around **16 controlled failure, diagnosis, recovery, and validation scenarios**.
 
-## Purpose
+The project demonstrates evidence-driven troubleshooting across **KVM/QEMU, libvirt, Linux services, networking, storage, PostgreSQL, monitoring, security, and kernel/resource layers**.
 
-This repository documents hands-on troubleshooting across Ubuntu, KVM/QEMU, libvirt, systemd, networking, storage, package management, cloud-init, PostgreSQL, Prometheus, Snap, AppArmor, cgroups, and Linux network buffers.
+Each incident follows a support workflow of **Symptom → Evidence → Root Cause → Fix → Validation**, rather than stopping when a service simply starts working again.
 
-Each incident follows the same support workflow:
+**Start here:** [INC009 — cloud-init recovery](incidents/INC009-cloud-init-datasource-recovery/incident-report.md) · [INC012 — database storage exhaustion](incidents/INC012-full-stack-degradation/incident-report.md) · [INC016 — UDP receive-buffer overflow](incidents/INC016-udp-receive-buffer-overflow/incident-report.md)
 
-**Symptom → Detection → Investigation → Root Cause → Fix → Verification → Prevention**
+---
 
-The goal is not only to make a service work again, but to collect evidence, isolate the failing layer, validate the recovery, and leave the environment clean.
+## Featured Incidents
 
-## Environment
+### [INC009 — cloud-init Datasource Recovery](incidents/INC009-cloud-init-datasource-recovery/incident-report.md)
 
-- Virtualization: KVM/QEMU with libvirt
-- Lab host: Ubuntu userspace under WSL2
-- Guest: Ubuntu Server 24.04.4 LTS
-- Primary VM: `ubuntu-guest-01`
-- Guest hostname: `lab-guest-01`
-- Primary libvirt network: NAT via `virbr0`
-- Additional networking: isolated libvirt network
-- Storage: qcow2 disk images, snapshots, and resize/recovery workflows
-- Core guest services used across incidents: Nginx, PostgreSQL, Prometheus, node exporter
+A multi-stage Ubuntu provisioning and recovery incident involving:
 
-## Incidents — 16 Documented
+- cloud-init installer disable state
+- datasource discovery failure
+- local NoCloud recovery
+- libvirt network dependencies
+- SSH host-key validation
+- offline qcow2 account recovery
+- final cloud-init and network validation
 
-| ID | Incident | Category | Status |
-|---|---|---|---|
-| [INC001](incidents/INC001-nginx-service-failure/incident-report.md) | Nginx Service Failure | Service / systemd | Resolved |
-| [INC002](incidents/INC002-guest-network-loss/incident-report.md) | KVM Guest Network Loss | KVM Networking | Resolved |
-| [INC003](incidents/INC003-isolated-network/incident-report.md) | Isolated libvirt Network Failure | KVM Networking | Resolved |
-| [INC004](incidents/INC004-storage-snapshot-recovery/incident-report.md) | VM Storage Snapshot Recovery | Storage / qcow2 | Resolved |
-| [INC005](incidents/INC005-disk-full-recovery/incident-report.md) | Guest Disk-Full Recovery | Storage | Resolved |
-| [INC006](incidents/INC006-systemd-service-failure/incident-report.md) | systemd Service Misconfiguration | systemd | Resolved |
-| [INC007](incidents/INC007-netplan-configuration-failure/incident-report.md) | Netplan Configuration Failure | Ubuntu Networking | Resolved |
-| [INC008](incidents/INC008-apt-dependency-failure/incident-report.md) | APT/dpkg Dependency Failure | Package Management | Resolved |
-| [INC009](incidents/INC009-cloud-init-datasource-recovery/incident-report.md) | cloud-init Datasource Recovery | Provisioning | Resolved |
-| [INC010](incidents/INC010-postgresql-connection-policy-failure/incident-report.md) | Cross-VM PostgreSQL Connection Policy Failure | Database / Networking / Access | Resolved |
-| [INC011](incidents/INC011-prometheus-alert-lifecycle/incident-report.md) | Prometheus + Alertmanager Resource Alert Lifecycle | Monitoring / Observability | Resolved |
-| [INC012](incidents/INC012-full-stack-degradation/incident-report.md) | Multi-VM Database Storage Exhaustion | Application / Database / Storage / Monitoring | Resolved |
-| [INC013](incidents/INC013-snap-confinement-failure/incident-report.md) | Snap Strict-Confinement Failure | Snap / Security | Resolved |
-| [INC014](incidents/INC014-apparmor-policy-block/incident-report.md) | AppArmor Policy Block | Security | Resolved |
-| [INC015](incidents/INC015-cgroup-oom-kill/incident-report.md) | Controlled cgroup OOM Kill | Kernel / Memory | Resolved |
-| [INC016](incidents/INC016-udp-receive-buffer-overflow/incident-report.md) | UDP Receive-Buffer Overflow | Kernel / Networking | Resolved |
+**Why it matters:** demonstrates troubleshooting across provisioning, virtualization, networking, authentication, and offline system recovery.
 
-## Support Automation
+---
 
-The repository includes support automation implemented in Bash, Python, and Perl.
+### [INC012 — Multi-VM Database Storage Exhaustion](incidents/INC012-full-stack-degradation/incident-report.md)
 
-| Script | Language | Purpose |
-|---|---|---|
-| [`enterprise_support_bundle.sh`](scripts/enterprise_support_bundle.sh) | Bash | Collect cross-VM application, database, monitoring, and libvirt diagnostic evidence |
-| [`kvm_diagnostic.sh`](scripts/kvm_diagnostic.sh) | Bash | Collect KVM/libvirt host diagnostic information |
-| [`ubuntu_health.sh`](scripts/ubuntu_health.sh) | Bash | Produce a quick Ubuntu system-health assessment |
-| [`vm_snapshot.sh`](scripts/vm_snapshot.sh) | Bash | Manage VM snapshot create/list/restore/delete lifecycle |
-| [`kvm_monitor.py`](scripts/kvm_monitor.py) | Python | Generate KVM VM state reports and flag stopped guests |
-| [`log_parser.pl`](scripts/log_parser.pl) | Perl | Parse Linux logs for errors, failed services, OOM events, and disk-full patterns |
+A full application-to-infrastructure failure chain across separate web, database, and monitoring VMs.
 
-## Skills Demonstrated
+```text
+8.03% filesystem usage
+→ 88.49% Prometheus warning
+→ DBDiskNearlyFull FIRING
+→ application still HTTP 200
+→ database filesystem reaches 100%
+→ PostgreSQL write fails with ENOSPC
+→ application HTTP 503
+→ storage recovered
+→ PostgreSQL write succeeds
+→ HTTP 200
+→ alert cleared
 
-- KVM/QEMU deployment and troubleshooting
-- libvirt VM, network, and storage management
-- qcow2 snapshot and disk-recovery workflows
-- Ubuntu systemd diagnostics with `systemctl` and `journalctl`
-- Netplan configuration and network recovery
-- APT/dpkg dependency diagnosis
-- cloud-init datasource diagnosis and NoCloud recovery
-- PostgreSQL connectivity and `pg_hba.conf` troubleshooting
-- Prometheus, node exporter, and Alertmanager alert lifecycle validation
-- Snap strict confinement and devmode comparison
-- AppArmor denial diagnosis and policy recovery
-- cgroup v2 memory limits and OOM-kill investigation
-- UDP socket receive-buffer drop analysis using `/proc/net/snmp`
-- Bash, Python, and Perl support automation
-- Before/after validation and cleanup discipline
+```
 
-## Multi-VM Enterprise Support Architecture
+PostgreSQL remained active throughout the failure, proving that **process state alone did not represent application health**.
+
+**Why it matters:** demonstrates multi-VM troubleshooting across Linux storage, PostgreSQL, application health, Prometheus, and Alertmanager.
+
+---
+
+### [INC016 — UDP Receive-Buffer Overflow](incidents/INC016-udp-receive-buffer-overflow/incident-report.md)
+
+A controlled Linux networking incident that correlated application packet loss directly with kernel UDP receive-buffer counters.
+
+**Failure evidence**
+- 50,000 packets sent
+- 4 packets received
+- 49,996 packets lost
+- 49,996 new `RcvbufErrors`
+
+**Recovery validation**
+- 10,000 packets sent
+- 10,000 packets received
+- 0 new `RcvbufErrors`
+
+**Why it matters:** demonstrates low-level Linux network troubleshooting using socket behavior, `/proc/net/snmp`, `ss`, and before/after counter analysis.
+
+---
+
+## Lab Architecture
 
 The advanced incidents use separate application, database, and monitoring VMs on an isolated libvirt network.
 
-```text
-Client
-  |
-  v
-vm-web-01 — 192.168.100.10
-Nginx + PHP-FPM
-  |
-  | PostgreSQL / TCP 5432
-  v
-vm-db-01 — 192.168.100.20
-PostgreSQL 14
-  |
-  | node_exporter :9100
-  v
-vm-monitor-01 — 192.168.100.30
-Prometheus + Alertmanager
-```
+- `vm-web-01` — `192.168.100.10` — Nginx + PHP-FPM
+- `vm-db-01` — `192.168.100.20` — PostgreSQL 14
+- `vm-monitor-01` — `192.168.100.30` — Prometheus + Alertmanager
 
-This architecture supports cross-VM troubleshooting across HTTP, Linux services, networking, PostgreSQL access control, storage, resource pressure, metrics, and alerting.
+Traffic path:
 
-## Strongest Incident Examples
+`Client → Web VM → PostgreSQL VM`
 
-### INC009 — cloud-init Datasource Recovery
-A multi-stage failure that progressed from an installer disable marker to datasource detection failure. Recovery required a local NoCloud seed, fresh cloud-init initialization, libvirt network recovery, SSH host-key handling, and offline qcow2 account recovery.
+Monitoring path:
 
-### INC012 — Multi-VM Database Storage Exhaustion
-Demonstrates a complete infrastructure-to-application failure chain. A dedicated PostgreSQL tablespace filesystem progressed from 8.03% usage to an 88.49% Prometheus warning and finally 100% exhaustion. PostgreSQL remained active but returned `No space left on device`, the web application degraded from HTTP 200 to HTTP 503, Alertmanager received the critical storage alert, and recovery restored HTTP 200 with the alert cleared.
+`Database / node_exporter → Prometheus → Alertmanager`
 
-### INC013 / INC014 — Snap and AppArmor
-Uses kernel audit evidence to distinguish application failure from Linux security-policy enforcement and validates recovery with controlled A/B testing.
+Core environment includes Ubuntu Server 24.04, KVM/QEMU, libvirt, qcow2, systemd, Netplan, PostgreSQL, Prometheus, AppArmor, Snap, cgroup v2, and Linux networking.
 
-### INC015 — cgroup OOM
-Uses a bounded systemd cgroup rather than host-wide memory exhaustion to reproduce an OOM kill safely and correlate systemd, journal, and kernel evidence.
+---
 
-### INC016 — UDP Receive-Buffer Overflow
-Correlates sent/received packet counts with the kernel `RcvbufErrors` counter, then validates recovery with zero new receive-buffer errors.
+## All 16 Incidents
 
-## Repository Structure
+| ID | Incident | Primary Area |
+|---|---|---|
+| [INC001](incidents/INC001-nginx-service-failure/incident-report.md) | Nginx service failure | systemd / Web |
+| [INC002](incidents/INC002-guest-network-loss/incident-report.md) | KVM guest network loss | KVM / Networking |
+| [INC003](incidents/INC003-isolated-network/incident-report.md) | Isolated libvirt network | libvirt / Networking |
+| [INC004](incidents/INC004-storage-snapshot-recovery/incident-report.md) | VM snapshot recovery | qcow2 / Storage |
+| [INC005](incidents/INC005-disk-full-recovery/incident-report.md) | Guest disk-full recovery | Linux Storage |
+| [INC006](incidents/INC006-systemd-service-failure/incident-report.md) | systemd service misconfiguration | systemd |
+| [INC007](incidents/INC007-netplan-configuration-failure/incident-report.md) | Netplan configuration failure | Ubuntu Networking |
+| [INC008](incidents/INC008-apt-dependency-failure/incident-report.md) | APT/dpkg dependency failure | Package Management |
+| [INC009](incidents/INC009-cloud-init-datasource-recovery/incident-report.md) | cloud-init datasource recovery | Provisioning / Recovery |
+| [INC010](incidents/INC010-postgresql-connection-policy-failure/incident-report.md) | PostgreSQL connection-policy failure | Database / Access |
+| [INC011](incidents/INC011-prometheus-alert-lifecycle/incident-report.md) | Prometheus alert lifecycle | Monitoring |
+| [INC012](incidents/INC012-full-stack-degradation/incident-report.md) | Multi-VM database storage exhaustion | App / DB / Storage / Monitoring |
+| [INC013](incidents/INC013-snap-confinement-failure/incident-report.md) | Snap strict-confinement failure | Security |
+| [INC014](incidents/INC014-apparmor-policy-block/incident-report.md) | AppArmor policy block | Security |
+| [INC015](incidents/INC015-cgroup-oom-kill/incident-report.md) | Controlled cgroup OOM kill | Kernel / Memory |
+| [INC016](incidents/INC016-udp-receive-buffer-overflow/incident-report.md) | UDP receive-buffer overflow | Kernel / Networking |
 
-```text
-ubuntu-kvm-support-lab/
-├── README.md
-├── incidents/
-│   ├── INC001-nginx-service-failure/
-│   ├── INC002-guest-network-loss/
-│   ├── INC003-isolated-network/
-│   ├── INC004-storage-snapshot-recovery/
-│   ├── INC005-disk-full-recovery/
-│   ├── INC006-systemd-service-failure/
-│   ├── INC007-netplan-configuration-failure/
-│   ├── INC008-apt-dependency-failure/
-│   ├── INC009-cloud-init-datasource-recovery/
-│   ├── INC010-postgresql-connection-policy-failure/
-│   ├── INC011-prometheus-alert-lifecycle/
-│   ├── INC012-full-stack-degradation/
-│   ├── INC013-snap-confinement-failure/
-│   ├── INC014-apparmor-policy-block/
-│   ├── INC015-cgroup-oom-kill/
-│   └── INC016-udp-receive-buffer-overflow/
-└── scripts/
-    ├── enterprise_support_bundle.sh
-    ├── kvm_diagnostic.sh
-    ├── ubuntu_health.sh
-    ├── vm_snapshot.sh
-    ├── kvm_monitor.py
-    └── log_parser.pl
-```
+All incidents are **controlled lab failures**, not customer production outages.
 
-## Enterprise Support Bundle Automation
+---
 
-The repository includes `scripts/enterprise_support_bundle.sh`, a cross-VM diagnostic collector for the enterprise support environment.
+## Support Automation
 
-It collects evidence from:
+The repository includes support tooling in Bash, Python, and Perl.
 
-- `vm-web-01` — `192.168.100.10`
-- `vm-db-01` — `192.168.100.20`
-- `vm-monitor-01` — `192.168.100.30`
-- the libvirt/KVM host
+| Script | Language | Purpose |
+|---|---|---|
+| [`enterprise_support_bundle.sh`](scripts/enterprise_support_bundle.sh) | Bash | Collect cross-VM application, database, monitoring, and libvirt evidence |
+| [`kvm_diagnostic.sh`](scripts/kvm_diagnostic.sh) | Bash | Collect KVM/libvirt host diagnostics |
+| [`ubuntu_health.sh`](scripts/ubuntu_health.sh) | Bash | Produce an Ubuntu system-health assessment |
+| [`vm_snapshot.sh`](scripts/vm_snapshot.sh) | Bash | Manage VM snapshot lifecycle |
+| [`kvm_monitor.py`](scripts/kvm_monitor.py) | Python | Report VM state and flag stopped guests |
+| [`log_parser.pl`](scripts/log_parser.pl) | Perl | Parse Linux logs for support-relevant failure patterns |
 
-The bundle captures system state, networking, listening sockets, failed services, filesystem usage, application health, PostgreSQL readiness, Prometheus targets and alerts, Alertmanager status, and libvirt VM/network information.
+The support bundle collects application health, PostgreSQL readiness, filesystem usage, network/listening sockets, Prometheus targets and alerts, Alertmanager state, and libvirt VM/network information.
 
-Each run generates:
+A successful run produces a timestamped evidence bundle, manifest, compressed archive, and SHA256 checksum.
 
-```text
-enterprise-support-<timestamp>/
-├── host/
-├── web/
-├── db/
-├── monitor/
-├── summary.txt
-└── manifest.txt
-```
+---
 
-The collector validates three HTTP health checks and three SSH targets, records a `PASS` or `WARN` result in the manifest, creates a compressed `.tar.gz` archive, and generates a SHA256 checksum.
+## CI Validation
 
-Generated bundles are excluded from Git through `.gitignore`.
+GitHub Actions validates the support automation on every push.
 
-### How to Run
+Checks include:
 
-Start the enterprise VMs and run:
+- Bash syntax
+- ShellCheck
+- Python compilation
+- Perl syntax
+- Git whitespace validation
 
-```bash
-./scripts/enterprise_support_bundle.sh
-```
+---
 
-The default lab addresses can also be overridden without editing the script:
+## Skills Demonstrated
 
-```bash
-WEB_IP=192.168.100.110 \
-DB_IP=192.168.100.120 \
-MON_IP=192.168.100.130 \
-./scripts/enterprise_support_bundle.sh
-```
+**Linux & systems:** systemd, journalctl, filesystems, package management, cloud-init, cgroup v2, AppArmor, Snap
 
-A successful healthy run reports:
+**Virtualization:** KVM/QEMU, libvirt, qcow2, VM networking, snapshots, offline recovery
 
-```text
-[8/8] Complete
-Bundle status: PASS
-```
+**Networking:** Netplan, bridges, TCP troubleshooting, UDP socket buffers, kernel network counters
 
-The generated manifest records:
+**Database & observability:** PostgreSQL, pg_hba.conf, Prometheus, node_exporter, Alertmanager
 
-```text
-status=PASS
-http_checks_ok=3/3
-ssh_checks_ok=3/3
-```
+**Support engineering:** evidence collection, fault isolation, root-cause analysis, safe remediation, before/after validation, cleanup, Bash/Python/Perl automation
 
-Validate the generated archive with:
+---
 
-```bash
-sha256sum -c support-bundles/enterprise-support-<timestamp>.tar.gz.sha256
-```
+## Troubleshooting Method
 
-The resulting archive provides one consolidated evidence package for application, database, monitoring, networking, Linux service, and libvirt/KVM troubleshooting.
+Each incident uses the same general workflow:
 
-## Incident Documentation Standard
+1. Establish a healthy baseline
+2. Reproduce the failure safely
+3. Collect evidence
+4. Isolate the failing layer
+5. Identify the root cause
+6. Apply the smallest safe fix
+7. Validate recovery
+8. Remove temporary test resources
 
-Incident reports are intended to preserve:
+The goal is not only to restart a process, but to prove why the failure occurred and verify that the full dependency chain recovered.
 
-1. Symptom and impact
-2. Detection method
-3. Investigation commands and observed evidence
-4. Root cause
-5. Recovery/fix
-6. Verification with before/after comparison
-7. Prevention or operational lessons
+---
 
-All incidents are controlled lab failures. Temporary test resources are removed after validation unless a component is intentionally retained as part of the base lab environment.
+## Documentation Note
+
+Documentation was written and refined with AI assistance; all environment setup, fault injection, troubleshooting, remediation, commands, and recovery validation were performed manually in the lab.
