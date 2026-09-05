@@ -1283,6 +1283,142 @@ Inspect service state
 
 ---
 
+## Phase 3 Support Review
+
+### Before / After Comparison
+
+| Check | Before | After |
+| --- | --- | --- |
+| cloud-init status | disabled | enabled and completed |
+| Initial disable reason | disabled-by-marker-file | marker absent |
+| Secondary disable reason | disabled-by-generator | datasource detected |
+| Datasource | none / disabled | NoCloud |
+| cloud-final.service | inactive | active (exited) |
+| Cloud-init errors | no successful run | errors: [] |
+| Primary network | dependent on existing guest state | enp1s0 UP, 192.168.122.170/24 |
+| SSH account state | ubuntu locked | ubuntu password-enabled |
+| VM recovery | guest inaccessible | SSH access restored |
+
+### Customer-Facing Symptom
+
+A customer could describe this incident as:
+
+```text
+After attempting to re-enable cloud-init on an Ubuntu KVM VM,
+cloud-init remains disabled after reboot. The VM later becomes
+unreachable over SSH even though it receives its expected DHCP
+address.
+```
+
+The support investigation would separate the symptom into layers:
+
+```text
+cloud-init service state
+→ installer disable marker
+→ datasource discovery
+→ libvirt network dependencies
+→ DHCP reachability
+→ SSH host identity
+→ account authentication state
+```
+
+### Example Support Ticket Update
+
+```text
+Status: Resolved
+
+Cloud-init was initially disabled by the Ubuntu installer marker.
+After removing the marker, cloud-init remained disabled because the
+local KVM guest had no discoverable metadata datasource.
+
+A local NoCloud datasource was configured and cloud-init completed
+successfully. During validation, the VM also encountered inactive
+libvirt network dependencies and a locked ubuntu account.
+
+Both issues were recovered without reinstalling the guest.
+
+Final validation confirmed:
+- DataSourceNoCloud detected
+- cloud-final.service completed successfully
+- expected DHCP address restored
+- SSH authentication restored
+- cloud-init errors: []
+```
+
+### What I Would Do Differently
+
+1. Capture an ISO-8601 timestamp before every major investigation and recovery step.
+2. Run `cloud-init collect-logs` before modifying cloud-init state so the original evidence is preserved in one archive.
+3. Verify the expected datasource before removing the installer disable marker.
+4. Confirm libvirt network autostart state before rebooting the guest.
+5. Record the guest SSH host-key fingerprint before a fresh cloud-init initialization.
+6. Verify account state before and immediately after cloud-init recovery.
+7. Prefer SSH-key authentication for recovery testing instead of relying only on a password-enabled account.
+
+### Prevention and Operational Controls
+
+Before re-enabling cloud-init on a persistent local VM:
+
+```bash
+cloud-init status --long
+cloud-id
+sudo cloud-init schema --system
+sudo cloud-init collect-logs
+```
+
+Verify that the intended datasource exists before rebooting:
+
+```bash
+sudo find /var/lib/cloud/seed -maxdepth 2 -type f -print
+```
+
+For this local KVM design, verify the NoCloud seed:
+
+```bash
+sudo find /var/lib/cloud/seed/nocloud -maxdepth 1 -type f -print
+```
+
+On the libvirt host, verify network dependencies before starting the VM:
+
+```bash
+virsh -c qemu:///system net-list --all
+virsh -c qemu:///system domiflist ubuntu-guest-01
+```
+
+For offline qcow2 recovery, confirm the VM is shut off before attaching the disk:
+
+```bash
+virsh -c qemu:///system domstate ubuntu-guest-01
+```
+
+### Timestamp Note
+
+Exact per-command timestamps were not preserved in the original INC009 terminal capture.
+They are therefore not reconstructed or estimated in this report.
+
+Future incident captures should record milestones using:
+
+```bash
+date -Is
+```
+
+and preserve relevant journal timestamps using commands such as:
+
+```bash
+journalctl -u cloud-init.service --no-pager -o short-iso
+journalctl -u cloud-final.service --no-pager -o short-iso
+```
+
+### Relevant Documentation
+
+- cloud-init documentation: disabling and enabling cloud-init
+- cloud-init documentation: NoCloud datasource
+- cloud-init documentation: `cloud-init clean`
+- cloud-init documentation: `cloud-init collect-logs`
+- Ubuntu/libvirt documentation for KVM virtual networking
+
+---
+
 ## Final Status
 
 ```text
