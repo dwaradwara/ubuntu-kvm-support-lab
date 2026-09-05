@@ -282,7 +282,7 @@ A dedicated application role was created:
 
 ```bash
 sudo -u postgres psql -c \
-"CREATE ROLE inc012_app LOGIN PASSWORD 'Inc012Pass2026';"
+"CREATE ROLE inc012_app LOGIN PASSWORD '<LAB_PASSWORD>';"
 ```
 
 Observed:
@@ -349,7 +349,7 @@ GRANT
 The application role was tested directly through TCP:
 
 ```bash
-PGPASSWORD='Inc012Pass2026' \
+PGPASSWORD='<LAB_PASSWORD>' \
 psql -h 127.0.0.1 \
 -U inc012_app \
 -d inc012_db \
@@ -966,7 +966,7 @@ This confirmed that the expected application schema had been restored.
 The application role was tested again:
 
 ```bash
-PGPASSWORD='Inc012Pass2026' \
+PGPASSWORD='<LAB_PASSWORD>' \
 psql -h 127.0.0.1 \
 -U inc012_app \
 -d inc012_db \
@@ -1707,22 +1707,6 @@ node_filesystem_size_bytes
 Operational thresholds should leave enough time for investigation and
 capacity remediation before PostgreSQL reaches ENOSPC.
 
-### Timestamp Note
-
-Exact per-command timestamps were not preserved consistently during the
-original INC012 execution. They are therefore not reconstructed.
-
-Future captures should record milestones with:
-
-```bash
-date -Is
-```
-
-and preserve timestamped service/database evidence with:
-
-```bash
-journalctl -u postgresql --no-pager -o short-iso
-```
 
 ### Relevant Documentation
 

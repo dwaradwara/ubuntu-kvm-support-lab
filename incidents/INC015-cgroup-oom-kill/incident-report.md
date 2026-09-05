@@ -981,23 +981,6 @@ working-set requirements plus appropriate operational headroom.
 Resource-pressure testing should be performed in an isolated cgroup
 or non-production environment rather than by exhausting host memory.
 
-### Timestamp Note
-
-Exact per-command timestamps were not preserved consistently during the
-original INC015 execution. They are therefore not reconstructed.
-
-Future captures should record milestones using:
-
-```bash
-date -Is
-```
-
-and preserve timestamped service and kernel evidence using:
-
-```bash
-journalctl -u <unit> --no-pager -o short-iso
-journalctl -k --no-pager -o short-iso
-```
 
 ### Relevant Documentation
 

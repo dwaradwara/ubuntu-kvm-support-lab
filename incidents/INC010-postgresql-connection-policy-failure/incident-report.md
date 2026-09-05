@@ -231,7 +231,7 @@ A dedicated application role was created:
 
 ```bash
 sudo -u postgres psql -c \
-"CREATE ROLE inc010_app LOGIN PASSWORD 'Inc010Pass2026';"
+"CREATE ROLE inc010_app LOGIN PASSWORD '<LAB_PASSWORD>';"
 ```
 
 Observed:
@@ -259,7 +259,7 @@ inc010_app
 A TCP connection was tested through localhost:
 
 ```bash
-PGPASSWORD='Inc010Pass2026' \
+PGPASSWORD='<LAB_PASSWORD>' \
 psql -h 127.0.0.1 \
 -U inc010_app \
 -d inc010_db \
@@ -422,7 +422,7 @@ This proved the PostgreSQL server remained available after the configuration rel
 The exact same application connection used during baseline validation was retried:
 
 ```bash
-PGPASSWORD='Inc010Pass2026' \
+PGPASSWORD='<LAB_PASSWORD>' \
 psql -h 127.0.0.1 \
 -U inc010_app \
 -d inc010_db \
@@ -573,7 +573,7 @@ sudo systemctl reload postgresql
 The same application connection was tested again:
 
 ```bash
-PGPASSWORD='Inc010Pass2026' \
+PGPASSWORD='<LAB_PASSWORD>' \
 psql -h 127.0.0.1 \
 -U inc010_app \
 -d inc010_db \

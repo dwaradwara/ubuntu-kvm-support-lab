@@ -1391,23 +1391,6 @@ For offline qcow2 recovery, confirm the VM is shut off before attaching the disk
 virsh -c qemu:///system domstate ubuntu-guest-01
 ```
 
-### Timestamp Note
-
-Exact per-command timestamps were not preserved in the original INC009 terminal capture.
-They are therefore not reconstructed or estimated in this report.
-
-Future incident captures should record milestones using:
-
-```bash
-date -Is
-```
-
-and preserve relevant journal timestamps using commands such as:
-
-```bash
-journalctl -u cloud-init.service --no-pager -o short-iso
-journalctl -u cloud-final.service --no-pager -o short-iso
-```
 
 ### Relevant Documentation
 

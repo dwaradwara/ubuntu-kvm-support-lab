@@ -34,7 +34,7 @@ The objective was to verify:
 - absence of Internet connectivity when traffic was explicitly sourced from the isolated NIC
 - preservation of the original NAT-based Internet connection
 
-The roadmap defines INC003 as a custom isolated network exercise using an `isolated` libvirt network and a second VM interface. :contentReference[oaicite:0]{index=0}
+I scoped INC003 to validate an `isolated` libvirt network by attaching a second virtual interface to the existing guest while preserving its original NAT-connected interface.
 
 ---
 
@@ -130,7 +130,7 @@ This confirmed that the new libvirt network was:
     Autostart:   yes
     Persistent:  yes
 
-The roadmap specifically requires defining, starting, enabling autostart, and verifying the isolated network before attaching the VM interface. :contentReference[oaicite:1]{index=1}
+I defined the isolated network, started it, enabled autostart, and verified its persistent state before attaching the additional VM interface.
 
 ---
 
@@ -471,13 +471,11 @@ A production implementation would require persistent guest-side network configur
 
 ## Scope Limitation
 
-The roadmap labels INC003 as:
+INC003 was implemented using a second virtual interface on `ubuntu-guest-01`; a second VM was not attached to the `isolated` network.
 
-    Custom Isolated Network Between VMs
+I therefore treated the scope as validation of the isolated libvirt network, bridge, TAP interface, routing behavior, and separation from the guest's existing NAT-connected interface.
 
-However, the provided lab procedure attaches an additional interface to `ubuntu-guest-01`; it does not create or attach a second VM. :contentReference[oaicite:2]{index=2}
-
-Therefore, this incident does not claim that VM-to-VM communication was tested.
+This incident does not claim that VM-to-VM communication was tested.
 
 What was directly validated was:
 

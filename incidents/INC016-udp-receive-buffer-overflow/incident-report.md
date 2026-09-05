@@ -1219,18 +1219,6 @@ or upstream/network loss
 
 rather than applying arbitrary global sysctl increases.
 
-### Timestamp Note
-
-Exact per-command timestamps were not preserved consistently during the
-original INC016 execution. They are therefore not reconstructed.
-
-Future captures should record milestones using:
-
-```bash
-date -Is
-```
-
-and capture network state at the same time as UDP counter snapshots.
 
 ### Relevant Documentation
 
