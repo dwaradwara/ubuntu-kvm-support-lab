@@ -1106,6 +1106,142 @@ Inspect receive-buffer defaults
 
 ---
 
+## Phase 3 Support Review
+
+### Before / Failure / After Comparison
+
+| Check | Baseline | Failure | Recovery |
+| --- | --- | --- | --- |
+| UDP test port | free | receiver bound | free after cleanup |
+| Receive buffer | normal system baseline | intentionally tiny | increased / healthy |
+| Packets sent | 0 test packets | 50000 | 10000 |
+| Packets received | N/A | 4 | 10000 |
+| RcvbufErrors delta | 0 | 49996 | 0 new errors |
+| Packet loss | none measured | 49996 packets | 0 packets |
+| Receiver behavior | healthy baseline | delayed consumption | continuous consumption |
+| Core services | active | active | active |
+
+### Customer-Facing Symptom
+
+A production customer could describe a similar incident as:
+
+```text
+The UDP service is running and the port is listening, but messages are
+being lost during traffic bursts. There are no obvious application
+crashes or TCP-style connection errors.
+```
+
+The support investigation should distinguish process health from
+socket-buffer health:
+
+```text
+packet loss
+→ verify process and socket
+→ inspect application receive rate
+→ inspect UDP kernel counters
+→ compare RcvbufErrors delta
+→ inspect receive-buffer sizing
+→ reproduce with controlled traffic
+→ validate recovery with zero new drops
+```
+
+### Example Support Ticket Update
+
+```text
+Status: Resolved
+
+The UDP service remained running, but its receive queue overflowed
+during burst traffic.
+
+A controlled 50,000-packet test delivered only 4 packets while the
+kernel recorded 49,996 new RcvbufErrors. The exact match between
+packet loss and receive-buffer errors identified socket receive-buffer
+overflow as the root cause.
+
+The recovery receiver used a larger receive buffer and continuously
+consumed queued packets.
+
+A deterministic 10,000-packet validation then received all 10,000
+packets and produced zero new RcvbufErrors.
+
+Temporary test resources were removed and persistent services remained
+healthy.
+```
+
+### What I Would Do Differently
+
+1. Capture ISO-8601 timestamps at the baseline, failure, and recovery milestones.
+2. Record UDP counters immediately before and immediately after each traffic test.
+3. Capture `ss -u -a -n -m` while the queue is actively filling.
+4. Record application-level receive counters alongside kernel counters.
+5. Use a deterministic sender/receiver harness from the beginning rather than relying on manual timing.
+6. Record packet size and approximate packets-per-second for every test.
+7. In production, verify whether drops occur at the socket, interface, virtual switch, or upstream network before changing buffer settings.
+
+### Prevention and Operational Controls
+
+Capture UDP receive-error counters:
+
+```bash
+awk '/^Udp:/{print}' /proc/net/snmp
+```
+
+Inspect UDP socket queues and memory:
+
+```bash
+ss -u -a -n -m
+```
+
+Inspect receive-buffer defaults and limits:
+
+```bash
+sysctl net.core.rmem_default
+sysctl net.core.rmem_max
+```
+
+For application troubleshooting, also review the socket-level receive
+buffer configured through SO_RCVBUF and whether the application is
+consuming datagrams quickly enough.
+
+Kernel counters are cumulative, so monitoring should alert on the
+rate or delta of receive-buffer errors rather than the absolute
+counter value.
+
+Production remediation should address the actual bottleneck:
+
+```text
+buffer capacity
+application receive rate
+CPU scheduling
+traffic burst size
+or upstream/network loss
+```
+
+rather than applying arbitrary global sysctl increases.
+
+### Timestamp Note
+
+Exact per-command timestamps were not preserved consistently during the
+original INC016 execution. They are therefore not reconstructed.
+
+Future captures should record milestones using:
+
+```bash
+date -Is
+```
+
+and capture network state at the same time as UDP counter snapshots.
+
+### Relevant Documentation
+
+- [Linux kernel: SNMP counter definitions](https://docs.kernel.org/networking/snmp_counter.html)
+- [Linux socket API: socket(7)](https://man7.org/linux/man-pages/man7/socket.7.html)
+- [Linux UDP protocol: udp(7)](https://man7.org/linux/man-pages/man7/udp.7.html)
+- [ss command: ss(8)](https://man7.org/linux/man-pages/man8/ss.8.html)
+- [Linux kernel: IP sysctl networking settings](https://docs.kernel.org/networking/ip-sysctl.html)
+
+---
+
 ## Final Status
 
 ```text
