@@ -120,6 +120,53 @@ All incidents are **controlled lab failures**, not customer production outages.
 
 ---
 
+## How to Explore and Reproduce
+
+Clone the repository:
+
+```bash
+git clone https://github.com/dwaradwara/ubuntu-kvm-support-lab.git
+cd ubuntu-kvm-support-lab
+```
+
+For a quick review, start with the three featured incident reports:
+
+- INC009 — cloud-init datasource recovery
+- INC012 — multi-VM database storage exhaustion
+- INC016 — UDP receive-buffer overflow
+
+To reproduce the advanced multi-VM scenarios, use a Linux host with KVM/QEMU and libvirt plus Ubuntu Server guests with SSH access.
+
+The advanced environment uses:
+
+- `vm-web-01` — web/application tier
+- `vm-db-01` — PostgreSQL tier
+- `vm-monitor-01` — Prometheus and Alertmanager tier
+
+The support-bundle automation defaults to:
+
+```text
+WEB_IP=192.168.100.10
+DB_IP=192.168.100.20
+MON_IP=192.168.100.30
+SSH_KEY=$HOME/.ssh/canonical-lab
+```
+
+These values can be overridden without editing the script:
+
+```bash
+WEB_IP=<web-ip> \
+DB_IP=<db-ip> \
+MON_IP=<monitor-ip> \
+SSH_KEY=<ssh-private-key> \
+./scripts/enterprise_support_bundle.sh
+```
+
+Individual incident reports contain the failure injection, evidence collection, remediation, and recovery-validation workflow used during the lab.
+
+> This repository documents the troubleshooting environment and incident workflows; it does not currently provide one-command VM provisioning. Run destructive or resource-pressure scenarios only in an isolated lab environment.
+
+---
 ## Support Automation
 
 The repository includes support tooling in Bash, Python, and Perl.
