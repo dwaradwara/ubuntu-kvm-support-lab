@@ -884,6 +884,130 @@ Check host memory
 
 ---
 
+## Phase 3 Support Review
+
+### Customer-Facing Symptom
+
+A production customer could describe a similar incident as:
+
+```text
+One application process is repeatedly terminating under memory pressure,
+but the host still has available memory and unrelated services remain
+healthy.
+```
+
+The investigation should distinguish host-wide memory exhaustion from
+a cgroup-scoped memory limit:
+
+```text
+process termination
+→ inspect systemd unit result
+→ inspect service journal
+→ inspect kernel OOM evidence
+→ identify killed process
+→ inspect cgroup path
+→ inspect MemoryMax / MemorySwapMax
+→ verify host memory
+→ verify unrelated services
+```
+
+### Example Support Ticket Update
+
+```text
+Status: Resolved
+
+The affected workload was terminated by the kernel OOM killer because
+its systemd memory cgroup was limited to 64 MiB while the process
+attempted to allocate approximately 256 MiB.
+
+Kernel evidence identified CONSTRAINT_MEMCG, confirming that the OOM
+condition was scoped to the service cgroup rather than the entire host.
+
+systemd reported Result=oom-kill and the main process exited through
+SIGKILL. MemorySwapMax=0 prevented the workload from using swap beyond
+the configured cgroup limit.
+
+Unrelated services remained active and host memory remained healthy.
+The temporary test unit was removed after validation.
+```
+
+### What I Would Do Differently
+
+1. Capture ISO-8601 timestamps before the workload starts and immediately after the OOM event.
+2. Record `memory.current`, `memory.events`, and `memory.stat` before and after the failure.
+3. Capture the exact unit cgroup path before launching the workload.
+4. Record `systemctl show` resource-control properties before reproducing the incident.
+5. Preserve the first kernel OOM event rather than relying only on later journal queries.
+6. Add an explicit rollback command before starting any resource-pressure test.
+7. In a production case, compare configured limits with the application's normal working-set memory before changing them.
+
+### Prevention and Operational Controls
+
+Inspect memory limits for the affected service:
+
+```bash
+systemctl show <unit> \
+  -p MemoryCurrent \
+  -p MemoryMax \
+  -p MemorySwapMax
+```
+
+Inspect cgroup memory events:
+
+```bash
+cat /sys/fs/cgroup/system.slice/<unit>/memory.events
+cat /sys/fs/cgroup/system.slice/<unit>/memory.current
+cat /sys/fs/cgroup/system.slice/<unit>/memory.stat
+```
+
+Check host-level memory independently:
+
+```bash
+free -h
+swapon --show
+```
+
+Correlate systemd and kernel evidence:
+
+```bash
+systemctl status <unit>
+journalctl -u <unit> --no-pager
+journalctl -k --no-pager | grep -Ei 'oom|out of memory|killed process'
+```
+
+For production workloads, memory limits should be based on observed
+working-set requirements plus appropriate operational headroom.
+
+Resource-pressure testing should be performed in an isolated cgroup
+or non-production environment rather than by exhausting host memory.
+
+### Timestamp Note
+
+Exact per-command timestamps were not preserved consistently during the
+original INC015 execution. They are therefore not reconstructed.
+
+Future captures should record milestones using:
+
+```bash
+date -Is
+```
+
+and preserve timestamped service and kernel evidence using:
+
+```bash
+journalctl -u <unit> --no-pager -o short-iso
+journalctl -k --no-pager -o short-iso
+```
+
+### Relevant Documentation
+
+- [Linux kernel: Control Group v2](https://docs.kernel.org/admin-guide/cgroup-v2.html)
+- [systemd.resource-control](https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html)
+- [systemd-run](https://www.freedesktop.org/software/systemd/man/latest/systemd-run.html)
+- [systemd.service](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html)
+
+---
+
 ## Final Status
 
 ```text
