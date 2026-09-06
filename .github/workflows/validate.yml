@@ -26,6 +26,11 @@ jobs:
         with:
           tofu_wrapper: false
 
+      - name: Create CI SSH key fixture
+        run: |
+          mkdir -p "$HOME/.ssh"
+          ssh-keygen -q -t ed25519 -N '' -f "$HOME/.ssh/canonical-lab"
+
       - name: Validate Bash syntax
         run: |
           bash -n scripts/kvm_diagnostic.sh
