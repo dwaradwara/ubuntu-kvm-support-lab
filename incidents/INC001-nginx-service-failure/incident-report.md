@@ -68,6 +68,7 @@ A service restart was attempted:
 Result:
 
     Job for nginx.service failed because the control process exited with error code.
+
 ## Investigation
 
 ### 1. Check systemd service state
@@ -137,7 +138,9 @@ to return exit status 1.
 
 Because the `ExecStartPre` validation failed, systemd refused to start the Nginx service.
 
-The failure was therefore caused by a configuration syntax error, not by a network issue, package failure, port conflict, or resource exhaustion.## Recovery
+The failure was therefore caused by a configuration syntax error, not by a network issue, package failure, port conflict, or resource exhaustion.
+
+## Recovery
 
 The known-good Nginx configuration was restored from the backup:
 

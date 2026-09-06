@@ -4,7 +4,6 @@
 |---|---|
 | Incident ID | INC002 |
 | Date | 2026-09-03 |
-| Severity | Medium |
 | Status | Resolved |
 | Environment | Ubuntu 24.04.4 LTS KVM guest |
 | Guest Hostname | lab-guest-01 |
@@ -120,7 +119,9 @@ Observed result:
     master virbr0
     state DOWN
 
-The `UP` and `LOWER_UP` flags were no longer present, confirming that the TAP interface had been administratively disabled.---
+The `UP` and `LOWER_UP` flags were no longer present, confirming that the TAP interface had been administratively disabled.
+
+---
 
 ## Customer Symptom
 

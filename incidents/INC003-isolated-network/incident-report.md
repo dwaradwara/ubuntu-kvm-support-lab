@@ -4,7 +4,6 @@
 |---|---|
 | Incident ID | INC003 |
 | Date | 2026-09-03 |
-| Severity | Medium |
 | Status | Completed |
 | Environment | Ubuntu 24.04.4 LTS KVM guest |
 | Guest Hostname | lab-guest-01 |
