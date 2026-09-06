@@ -42,7 +42,7 @@ jobs:
 
       - name: Validate cloud-init YAML syntax
         run: |
-          python3 -c "from pathlib import Path; import yaml; files=sorted(Path("infra/cloud-init").glob("*.yaml.tftpl")); assert files, "No cloud-init templates found"; [yaml.safe_load(f.read_text()) for f in files]; print(f"Validated {len(files)} cloud-init templates")"
+          python3 -c 'from pathlib import Path; import yaml; files=sorted(Path("infra/cloud-init").glob("*.yaml.tftpl")); assert files, "No cloud-init templates found"; [yaml.safe_load(f.read_text()) for f in files]; print(f"Validated {len(files)} cloud-init templates")'
 
       - name: Check OpenTofu formatting
         run: |
