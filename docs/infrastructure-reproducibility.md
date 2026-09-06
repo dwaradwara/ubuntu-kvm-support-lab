@@ -1,4 +1,4 @@
-# Phase 4 — Reproducible Multi-VM Support Environment
+# Reproducible Infrastructure (IaC)
 
 ## Objective
 
@@ -10,7 +10,7 @@ Convert the manually built support environment into a reproducible Ubuntu/KVM st
 - `p4-db-01` — `192.168.140.20` — PostgreSQL + node_exporter
 - `p4-monitor-01` — `192.168.140.30` — Prometheus + Alertmanager + node_exporter
 
-The web application queries PostgreSQL over the isolated Phase 4 network and exposes `/health` and the Prometheus metric `phase4_db_up`.
+The web application queries PostgreSQL over the isolated support network and exposes `/health` and the Prometheus metric `phase4_db_up`.
 
 ## Failure lifecycle
 
@@ -28,7 +28,7 @@ Recovery:
 
 ## Reproducibility validation
 
-The existing Phase 4 environment was deliberately destroyed and recreated entirely from the committed infrastructure definitions.
+The reproducible IaC environment was deliberately destroyed and recreated entirely from the committed infrastructure definitions.
 
 Fresh deployment created 15 OpenTofu-managed resources. Validation confirmed:
 
