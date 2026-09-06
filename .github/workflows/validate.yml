@@ -1,4 +1,4 @@
-name: Validate Support Automation
+name: Repository Validation
 
 on:
   push:
@@ -19,7 +19,12 @@ jobs:
       - name: Install validation tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y shellcheck perl
+          sudo apt-get install -y shellcheck perl python3-yaml
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_wrapper: false
 
       - name: Validate Bash syntax
         run: |
@@ -34,6 +39,22 @@ jobs:
           shellcheck scripts/ubuntu_health.sh
           shellcheck scripts/vm_snapshot.sh
           shellcheck scripts/enterprise_support_bundle.sh
+
+      - name: Validate cloud-init YAML syntax
+        run: |
+          python3 -c "from pathlib import Path; import yaml; files=sorted(Path("infra/cloud-init").glob("*.yaml.tftpl")); assert files, "No cloud-init templates found"; [yaml.safe_load(f.read_text()) for f in files]; print(f"Validated {len(files)} cloud-init templates")"
+
+      - name: Check OpenTofu formatting
+        run: |
+          tofu fmt -check -recursive infra/tofu
+
+      - name: Initialize OpenTofu providers
+        run: |
+          tofu -chdir=infra/tofu init -backend=false -input=false
+
+      - name: Validate OpenTofu configuration
+        run: |
+          tofu -chdir=infra/tofu validate -no-color
 
       - name: Validate Python
         run: |
