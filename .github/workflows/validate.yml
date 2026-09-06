@@ -56,9 +56,15 @@ jobs:
         run: |
           tofu -chdir=infra/tofu validate -no-color
 
+      - name: Validate Phase 4 DB bootstrap
+        run: |
+          bash -n infra/bootstrap/phase4-db-bootstrap.sh
+          shellcheck infra/bootstrap/phase4-db-bootstrap.sh
+
       - name: Validate Python
         run: |
           python3 -m py_compile scripts/kvm_monitor.py
+          python3 -m py_compile infra/app/app.py
 
       - name: Validate Perl
         run: |

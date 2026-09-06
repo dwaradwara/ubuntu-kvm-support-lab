@@ -37,6 +37,7 @@ resource "libvirt_cloudinit_disk" "web_init" {
     {
       ssh_public_key = local.ssh_public_key
       db_password    = random_password.phase4_db.result
+      app_source_b64 = base64encode(file("${path.module}/../app/app.py"))
     }
   )
 

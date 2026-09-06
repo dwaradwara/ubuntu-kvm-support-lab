@@ -2,6 +2,9 @@
 hostname: p4-web-01
 manage_etc_hosts: true
 
+groups:
+  - phase4-app
+
 users:
   - name: ubuntu
     gecos: Ubuntu
@@ -11,6 +14,13 @@ users:
     lock_passwd: true
     ssh_authorized_keys:
       - ${ssh_public_key}
+
+  - name: phase4-app
+    system: true
+    primary_group: phase4-app
+    shell: /usr/sbin/nologin
+    lock_passwd: true
+    no_create_home: true
 
 ssh_pwauth: false
 disable_root: true
@@ -25,131 +35,16 @@ packages:
 
 write_files:
   - path: /opt/phase4-app/app.py
-    owner: root:root
-    permissions: '0755'
+    owner: root:phase4-app
+    permissions: '0750'
+    encoding: b64
+    content: ${app_source_b64}
+
+  - path: /etc/phase4-app.env
+    owner: root:phase4-app
+    permissions: '0640'
     content: |
-      #!/usr/bin/env python3
-
-      import json
-      from http.server import BaseHTTPRequestHandler, HTTPServer
-
-      import psycopg2
-
-
-      DB = {
-          "host": "192.168.140.20",
-          "port": 5432,
-          "dbname": "phase4app",
-          "user": "phase4_app",
-          "password": "${db_password}",
-          "connect_timeout": 2,
-      }
-
-
-      def check_database():
-          conn = None
-
-          try:
-              conn = psycopg2.connect(**DB)
-
-              with conn.cursor() as cur:
-                  cur.execute(
-                      "SELECT message "
-                      "FROM support_status "
-                      "WHERE id = 1;"
-                  )
-                  row = cur.fetchone()
-
-              if row:
-                  return True, row[0]
-
-              return False, "expected database row not found"
-
-          except Exception as exc:
-              return False, str(exc)
-
-          finally:
-              if conn:
-                  conn.close()
-
-
-      class Handler(BaseHTTPRequestHandler):
-
-          def log_message(self, fmt, *args):
-              print(
-                  "%s - %s" %
-                  (self.address_string(), fmt % args),
-                  flush=True,
-              )
-
-          def do_GET(self):
-              healthy, detail = check_database()
-
-              if self.path == "/health":
-                  status = 200 if healthy else 503
-
-                  body = json.dumps({
-                      "service": "phase4-web",
-                      "database": "up" if healthy else "down",
-                      "detail": detail,
-                  }).encode()
-
-                  self.send_response(status)
-                  self.send_header(
-                      "Content-Type",
-                      "application/json",
-                  )
-                  self.send_header(
-                      "Content-Length",
-                      str(len(body)),
-                  )
-                  self.end_headers()
-                  self.wfile.write(body)
-                  return
-
-              if self.path == "/metrics":
-                  value = 1 if healthy else 0
-
-                  body = (
-                      "# HELP phase4_db_up Whether the application "
-                      "can query PostgreSQL\n"
-                      "# TYPE phase4_db_up gauge\n"
-                      f"phase4_db_up {value}\n"
-                  ).encode()
-
-                  self.send_response(200)
-                  self.send_header(
-                      "Content-Type",
-                      "text/plain; version=0.0.4",
-                  )
-                  self.send_header(
-                      "Content-Length",
-                      str(len(body)),
-                  )
-                  self.end_headers()
-                  self.wfile.write(body)
-                  return
-
-              body = b"Phase 4 support application\n"
-
-              self.send_response(200)
-              self.send_header(
-                  "Content-Type",
-                  "text/plain",
-              )
-              self.send_header(
-                  "Content-Length",
-                  str(len(body)),
-              )
-              self.end_headers()
-              self.wfile.write(body)
-
-
-      HTTPServer(
-          ("192.168.140.10", 8080),
-          Handler,
-      ).serve_forever()
-
+      PHASE4_DB_PASSWORD=${db_password}
   - path: /etc/systemd/system/phase4-app.service
     owner: root:root
     permissions: '0644'
@@ -161,6 +56,9 @@ write_files:
 
       [Service]
       Type=simple
+      User=phase4-app
+      Group=phase4-app
+      EnvironmentFile=/etc/phase4-app.env
       ExecStart=/usr/bin/python3 /opt/phase4-app/app.py
       Restart=on-failure
       RestartSec=2

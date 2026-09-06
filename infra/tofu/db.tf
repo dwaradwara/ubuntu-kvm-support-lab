@@ -31,8 +31,9 @@ resource "libvirt_cloudinit_disk" "db_init" {
   user_data = templatefile(
     "${path.module}/../cloud-init/p4-db-user-data.yaml.tftpl",
     {
-      ssh_public_key = local.ssh_public_key
-      db_password    = random_password.phase4_db.result
+      ssh_public_key       = local.ssh_public_key
+      db_password          = random_password.phase4_db.result
+      bootstrap_source_b64 = base64encode(file("${path.module}/../bootstrap/phase4-db-bootstrap.sh"))
     }
   )
 
