@@ -35,14 +35,14 @@ packages:
 
 write_files:
   - path: /opt/phase4-app/app.py
-    owner: root:phase4-app
+    owner: root:root
     permissions: '0750'
     encoding: b64
     content: ${app_source_b64}
 
   - path: /etc/phase4-app.env
-    owner: root:phase4-app
-    permissions: '0640'
+    owner: root:root
+    permissions: '0600'
     content: |
       PHASE4_DB_PASSWORD=${db_password}
   - path: /etc/systemd/system/phase4-app.service
@@ -67,6 +67,10 @@ write_files:
       WantedBy=multi-user.target
 
 runcmd:
+  - [chown, 'root:phase4-app', /opt/phase4-app/app.py]
+  - [chmod, '0750', /opt/phase4-app/app.py]
+  - [chown, 'root:phase4-app', /etc/phase4-app.env]
+  - [chmod, '0640', /etc/phase4-app.env]
   - [systemctl, enable, --now, qemu-guest-agent]
   - [systemctl, enable, --now, prometheus-node-exporter]
   - [systemctl, daemon-reload]
