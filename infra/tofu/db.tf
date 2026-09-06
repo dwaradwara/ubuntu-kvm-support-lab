@@ -32,6 +32,7 @@ resource "libvirt_cloudinit_disk" "db_init" {
     "${path.module}/../cloud-init/p4-db-user-data.yaml.tftpl",
     {
       ssh_public_key = local.ssh_public_key
+      db_password    = random_password.phase4_db.result
     }
   )
 

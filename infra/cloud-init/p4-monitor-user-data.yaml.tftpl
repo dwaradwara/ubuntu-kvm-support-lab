@@ -24,7 +24,6 @@ packages:
   - prometheus-node-exporter
   - curl
 
-
 write_files:
   - path: /etc/prometheus/prometheus.yml
     owner: root:root
@@ -33,6 +32,15 @@ write_files:
       global:
         scrape_interval: 15s
         evaluation_interval: 15s
+
+      alerting:
+        alertmanagers:
+          - static_configs:
+              - targets:
+                  - localhost:9093
+
+      rule_files:
+        - /etc/prometheus/phase4_rules.yml
 
       scrape_configs:
         - job_name: prometheus
@@ -49,10 +57,56 @@ write_files:
               labels:
                 environment: phase4
 
+        - job_name: phase4-app
+          static_configs:
+            - targets:
+                - ${web_support_ip}:8080
+              labels:
+                environment: phase4
+
+  - path: /etc/prometheus/phase4_rules.yml
+    owner: root:root
+    permissions: '0644'
+    content: |
+      groups:
+        - name: phase4-application
+          rules:
+            - alert: Phase4DatabaseDependencyDown
+              expr: phase4_db_up == 0
+              for: 15s
+              labels:
+                severity: critical
+                environment: phase4
+              annotations:
+                summary: "Phase 4 application cannot query PostgreSQL"
+                description: "p4-web-01 cannot successfully query p4-db-01."
+
+  - path: /etc/prometheus/alertmanager.yml
+    owner: root:root
+    permissions: '0644'
+    content: |
+      global:
+        resolve_timeout: 1m
+
+      route:
+        receiver: phase4-default
+        group_by:
+          - alertname
+        group_wait: 5s
+        group_interval: 30s
+        repeat_interval: 1h
+
+      receivers:
+        - name: phase4-default
+
 runcmd:
   - [systemctl, enable, --now, qemu-guest-agent]
-  - [systemctl, enable, --now, prometheus]
-  - [systemctl, enable, --now, prometheus-alertmanager]
   - [systemctl, enable, --now, prometheus-node-exporter]
+  - [promtool, check, config, /etc/prometheus/prometheus.yml]
+  - [promtool, check, rules, /etc/prometheus/phase4_rules.yml]
+  - [systemctl, enable, --now, prometheus-alertmanager]
+  - [systemctl, restart, prometheus-alertmanager]
+  - [systemctl, enable, --now, prometheus]
+  - [systemctl, restart, prometheus]
 
 final_message: "p4-monitor-01 cloud-init complete"

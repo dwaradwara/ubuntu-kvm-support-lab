@@ -36,6 +36,7 @@ resource "libvirt_cloudinit_disk" "web_init" {
     "${path.module}/../cloud-init/p4-web-user-data.yaml.tftpl",
     {
       ssh_public_key = local.ssh_public_key
+      db_password    = random_password.phase4_db.result
     }
   )
 
