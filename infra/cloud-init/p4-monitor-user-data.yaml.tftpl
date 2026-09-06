@@ -1,0 +1,33 @@
+#cloud-config
+hostname: p4-monitor-01
+manage_etc_hosts: true
+
+users:
+  - name: ubuntu
+    gecos: Ubuntu
+    groups: [adm, sudo]
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    shell: /bin/bash
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+ssh_pwauth: false
+disable_root: true
+
+package_update: true
+
+packages:
+  - qemu-guest-agent
+  - prometheus
+  - prometheus-alertmanager
+  - prometheus-node-exporter
+  - curl
+
+runcmd:
+  - [systemctl, enable, --now, qemu-guest-agent]
+  - [systemctl, enable, --now, prometheus]
+  - [systemctl, enable, --now, prometheus-alertmanager]
+  - [systemctl, enable, --now, prometheus-node-exporter]
+
+final_message: "p4-monitor-01 cloud-init complete"
