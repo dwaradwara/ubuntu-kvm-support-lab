@@ -48,4 +48,3 @@ Fresh deployment created 15 OpenTofu-managed resources. Validation confirmed:
 ## Support engineering takeaway
 
 The important result is not simply that the services start. The environment demonstrates dependency-aware health checking, observable failure propagation, controlled incident reproduction, recovery validation, infrastructure convergence, and clean rebuild capability.
-
