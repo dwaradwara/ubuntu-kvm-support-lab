@@ -22,8 +22,10 @@ packages:
   - postgresql
   - postgresql-contrib
   - curl
+  - prometheus-node-exporter
 
 runcmd:
+  - [systemctl, enable, --now, prometheus-node-exporter]
   - [systemctl, enable, --now, qemu-guest-agent]
   - [systemctl, enable, --now, postgresql]
 

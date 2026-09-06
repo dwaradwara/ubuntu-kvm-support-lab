@@ -31,7 +31,10 @@ resource "libvirt_cloudinit_disk" "monitor_init" {
   user_data = templatefile(
     "${path.module}/../cloud-init/p4-monitor-user-data.yaml.tftpl",
     {
-      ssh_public_key = local.ssh_public_key
+      ssh_public_key     = local.ssh_public_key
+      web_support_ip     = local.web_support_ip
+      db_support_ip      = local.db_support_ip
+      monitor_support_ip = local.monitor_support_ip
     }
   )
 

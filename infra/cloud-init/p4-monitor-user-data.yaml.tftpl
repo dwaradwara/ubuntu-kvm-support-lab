@@ -24,6 +24,31 @@ packages:
   - prometheus-node-exporter
   - curl
 
+
+write_files:
+  - path: /etc/prometheus/prometheus.yml
+    owner: root:root
+    permissions: '0644'
+    content: |
+      global:
+        scrape_interval: 15s
+        evaluation_interval: 15s
+
+      scrape_configs:
+        - job_name: prometheus
+          static_configs:
+            - targets:
+                - localhost:9090
+
+        - job_name: phase4-linux-nodes
+          static_configs:
+            - targets:
+                - ${web_support_ip}:9100
+                - ${db_support_ip}:9100
+                - ${monitor_support_ip}:9100
+              labels:
+                environment: phase4
+
 runcmd:
   - [systemctl, enable, --now, qemu-guest-agent]
   - [systemctl, enable, --now, prometheus]

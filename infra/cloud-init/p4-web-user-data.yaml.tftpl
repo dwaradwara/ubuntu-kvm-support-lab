@@ -20,8 +20,10 @@ package_update: true
 packages:
   - qemu-guest-agent
   - curl
+  - prometheus-node-exporter
 
 runcmd:
+  - [systemctl, enable, --now, prometheus-node-exporter]
   - [systemctl, enable, --now, qemu-guest-agent]
 
 final_message: "p4-web-01 cloud-init complete"
