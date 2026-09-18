@@ -1,0 +1,12 @@
+● support-demo.service - INC018 controlled package-regression demo
+     Loaded: loaded (/lib/systemd/system/support-demo.service; enabled; vendor preset: enabled)
+     Active: active (running) since Fri 2026-09-18 13:46:55 UTC; 52s ago
+   Main PID: 12767 (python3)
+      Tasks: 1 (limit: 2307)
+     Memory: 8.2M
+        CPU: 168ms
+     CGroup: /system.slice/support-demo.service
+             └─12767 python3 /usr/local/bin/support-demo
+
+Sep 18 13:46:55 p4-web-01 systemd[1]: Started INC018 controlled package-regression demo.
+Sep 18 13:47:11 p4-web-01 support-demo[12767]: "GET /health HTTP/1.1" 200 -

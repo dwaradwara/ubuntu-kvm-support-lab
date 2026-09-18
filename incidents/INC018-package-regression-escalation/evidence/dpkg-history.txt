@@ -1,0 +1,14 @@
+2026-09-18 13:46:54 install support-demo:all <none> 1.0
+2026-09-18 13:46:54 status half-installed support-demo:all 1.0
+2026-09-18 13:46:54 status unpacked support-demo:all 1.0
+2026-09-18 13:46:54 configure support-demo:all 1.0 1.0
+2026-09-18 13:46:54 status half-configured support-demo:all 1.0
+2026-09-18 13:46:55 status installed support-demo:all 1.0
+2026-09-18 13:47:53 upgrade support-demo:all 1.0 1.1
+2026-09-18 13:47:53 status half-configured support-demo:all 1.0
+2026-09-18 13:47:53 status unpacked support-demo:all 1.0
+2026-09-18 13:47:53 status half-installed support-demo:all 1.0
+2026-09-18 13:47:53 status unpacked support-demo:all 1.1
+2026-09-18 13:47:53 configure support-demo:all 1.1 1.1
+2026-09-18 13:47:53 status half-configured support-demo:all 1.1
+2026-09-18 13:47:53 status installed support-demo:all 1.1

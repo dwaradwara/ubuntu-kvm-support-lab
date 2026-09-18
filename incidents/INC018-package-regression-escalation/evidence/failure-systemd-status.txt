@@ -1,0 +1,11 @@
+× support-demo.service - INC018 controlled package-regression demo
+     Loaded: loaded (/lib/systemd/system/support-demo.service; enabled; vendor preset: enabled)
+     Active: failed (Result: exit-code) since Fri 2026-09-18 13:47:53 UTC; 2min 4s ago
+    Process: 12884 ExecStart=/usr/local/bin/support-demo (code=exited, status=42)
+   Main PID: 12884 (code=exited, status=42)
+        CPU: 15ms
+
+Sep 18 13:47:53 p4-web-01 systemd[1]: Started INC018 controlled package-regression demo.
+Sep 18 13:47:53 p4-web-01 support-demo[12884]: support-demo 1.1: controlled regression: invalid startup configuration
+Sep 18 13:47:53 p4-web-01 systemd[1]: support-demo.service: Main process exited, code=exited, status=42/n/a
+Sep 18 13:47:53 p4-web-01 systemd[1]: support-demo.service: Failed with result 'exit-code'.

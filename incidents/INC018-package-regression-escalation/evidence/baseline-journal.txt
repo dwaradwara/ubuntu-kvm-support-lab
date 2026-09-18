@@ -1,0 +1,2 @@
+Sep 18 13:46:55 p4-web-01 systemd[1]: Started INC018 controlled package-regression demo.
+Sep 18 13:47:11 p4-web-01 support-demo[12767]: "GET /health HTTP/1.1" 200 -

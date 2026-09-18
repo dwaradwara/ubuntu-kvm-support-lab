@@ -1,0 +1,63 @@
+== host ==
+Ubuntu 22.04.5 LTS
+Linux p4-web-01 5.15.0-190-generic #200-Ubuntu SMP Fri Aug 7 15:06:04 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+
+== package ==
+Package: support-demo
+Version: 1.1
+Status: install ok installed
+support-demo:
+  Installed: 1.1
+  Candidate: 1.1
+  Version table:
+ *** 1.1 100
+        100 /var/lib/dpkg/status
+
+== dpkg history ==
+2026-09-18 13:46:54 install support-demo:all <none> 1.0
+2026-09-18 13:46:54 status half-installed support-demo:all 1.0
+2026-09-18 13:46:54 status unpacked support-demo:all 1.0
+2026-09-18 13:46:54 configure support-demo:all 1.0 1.0
+2026-09-18 13:46:54 status half-configured support-demo:all 1.0
+2026-09-18 13:46:55 status installed support-demo:all 1.0
+2026-09-18 13:47:53 upgrade support-demo:all 1.0 1.1
+2026-09-18 13:47:53 status half-configured support-demo:all 1.0
+2026-09-18 13:47:53 status unpacked support-demo:all 1.0
+2026-09-18 13:47:53 status half-installed support-demo:all 1.0
+2026-09-18 13:47:53 status unpacked support-demo:all 1.1
+2026-09-18 13:47:53 configure support-demo:all 1.1 1.1
+2026-09-18 13:47:53 status half-configured support-demo:all 1.1
+2026-09-18 13:47:53 status installed support-demo:all 1.1
+
+== service state ==
+× support-demo.service - INC018 controlled package-regression demo
+     Loaded: loaded (/lib/systemd/system/support-demo.service; enabled; vendor preset: enabled)
+     Active: failed (Result: exit-code) since Fri 2026-09-18 13:47:53 UTC; 2min 4s ago
+    Process: 12884 ExecStart=/usr/local/bin/support-demo (code=exited, status=42)
+   Main PID: 12884 (code=exited, status=42)
+        CPU: 15ms
+
+Sep 18 13:47:53 p4-web-01 systemd[1]: Started INC018 controlled package-regression demo.
+Sep 18 13:47:53 p4-web-01 support-demo[12884]: support-demo 1.1: controlled regression: invalid startup configuration
+Sep 18 13:47:53 p4-web-01 systemd[1]: support-demo.service: Main process exited, code=exited, status=42/n/a
+Sep 18 13:47:53 p4-web-01 systemd[1]: support-demo.service: Failed with result 'exit-code'.
+
+== recent service journal ==
+Sep 18 13:46:55 p4-web-01 systemd[1]: Started INC018 controlled package-regression demo.
+Sep 18 13:47:11 p4-web-01 support-demo[12767]: "GET /health HTTP/1.1" 200 -
+Sep 18 13:47:48 p4-web-01 support-demo[12767]: "GET /health HTTP/1.1" 200 -
+Sep 18 13:47:53 p4-web-01 systemd[1]: Stopping INC018 controlled package-regression demo...
+Sep 18 13:47:53 p4-web-01 systemd[1]: support-demo.service: Deactivated successfully.
+Sep 18 13:47:53 p4-web-01 systemd[1]: Stopped INC018 controlled package-regression demo.
+Sep 18 13:47:53 p4-web-01 systemd[1]: Started INC018 controlled package-regression demo.
+Sep 18 13:47:53 p4-web-01 support-demo[12884]: support-demo 1.1: controlled regression: invalid startup configuration
+Sep 18 13:47:53 p4-web-01 systemd[1]: support-demo.service: Main process exited, code=exited, status=42/n/a
+Sep 18 13:47:53 p4-web-01 systemd[1]: support-demo.service: Failed with result 'exit-code'.
+
+== listening socket ==
+
+== health request ==
+*   Trying 127.0.0.1:18080...
+* connect to 127.0.0.1 port 18080 failed: Connection refused
+* Failed to connect to 127.0.0.1 port 18080 after 0 ms: Connection refused
+* Closing connection 0
