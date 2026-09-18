@@ -20,7 +20,7 @@ Evidence target:
 
 `systemd failure -> journalctl -> coredumpctl -> gdb backtrace -> root cause -> fix -> successful restart -> clean validation`
 
-### INC018 — package regression and support escalation — PENDING EXECUTION
+### INC018 — package regression and support escalation — COMPLETE
 
 Evidence target:
 
