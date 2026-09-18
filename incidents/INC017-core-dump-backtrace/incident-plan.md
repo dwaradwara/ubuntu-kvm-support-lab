@@ -42,13 +42,13 @@ gdb --version
 Install the demo service:
 
 ```bash
-sudo ./scripts/inc017_setup.sh
+sudo bash scripts/inc017_setup.sh
 ```
 
 Validate:
 
 ```bash
-./scripts/inc017_validate.sh
+bash scripts/inc017_validate.sh
 systemctl status canonical-crash-demo.service --no-pager
 journalctl -u canonical-crash-demo.service -n 30 --no-pager
 ```
@@ -95,7 +95,7 @@ The exact frames depend on Ubuntu/Python versions. Do not hard-code an expected 
 ```bash
 sudo sed -i 's/^TRIGGER_CRASH=.*/TRIGGER_CRASH=0/' /etc/default/canonical-crash-demo
 sudo systemctl restart canonical-crash-demo.service
-./scripts/inc017_validate.sh
+bash scripts/inc017_validate.sh
 ```
 
 ## Root-cause standard
