@@ -17,3 +17,6 @@ crash.*.log
 .terraformrc
 terraform.rc
 *.tfplan
+
+# Generated local lab build artifacts
+.lab-artifacts/

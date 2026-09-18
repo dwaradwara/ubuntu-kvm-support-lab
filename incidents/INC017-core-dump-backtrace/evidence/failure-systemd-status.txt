@@ -1,0 +1,12 @@
+× canonical-crash-demo.service - Canonical gap lab controlled crash demo
+     Loaded: loaded (/etc/systemd/system/canonical-crash-demo.service; enabled; vendor preset: enabled)
+     Active: failed (Result: core-dump) since Fri 2026-09-18 12:41:17 UTC; 1min 24s ago
+    Process: 12228 ExecStart=/usr/bin/python3 /opt/canonical-gap-lab/inc017_crash_service.py (code=dumped, signal=SEGV)
+   Main PID: 12228 (code=dumped, signal=SEGV)
+        CPU: 15ms
+
+Sep 18 12:41:17 p4-web-01 systemd[1]: Started Canonical gap lab controlled crash demo.
+Sep 18 12:41:17 p4-web-01 python3[12228]: canonical-crash-demo started pid=12228 trigger_crash=1
+Sep 18 12:41:17 p4-web-01 python3[12228]: controlled failure injection: invoking native crash
+Sep 18 12:41:17 p4-web-01 systemd[1]: canonical-crash-demo.service: Main process exited, code=dumped, status=11/SEGV
+Sep 18 12:41:17 p4-web-01 systemd[1]: canonical-crash-demo.service: Failed with result 'core-dump'.

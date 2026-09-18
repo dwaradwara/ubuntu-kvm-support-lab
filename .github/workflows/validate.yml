@@ -37,6 +37,10 @@ jobs:
           bash -n scripts/ubuntu_health.sh
           bash -n scripts/vm_snapshot.sh
           bash -n scripts/enterprise_support_bundle.sh
+          bash -n scripts/inc017_setup.sh
+          bash -n scripts/inc017_validate.sh
+          bash -n scripts/inc018_build_demo_packages.sh
+          bash -n scripts/inc018_collect_package_evidence.sh
 
       - name: Run ShellCheck
         run: |
@@ -44,6 +48,10 @@ jobs:
           shellcheck scripts/ubuntu_health.sh
           shellcheck scripts/vm_snapshot.sh
           shellcheck scripts/enterprise_support_bundle.sh
+          shellcheck scripts/inc017_setup.sh
+          shellcheck scripts/inc017_validate.sh
+          shellcheck scripts/inc018_build_demo_packages.sh
+          shellcheck scripts/inc018_collect_package_evidence.sh
 
       - name: Validate cloud-init YAML syntax
         run: |
@@ -69,11 +77,18 @@ jobs:
       - name: Validate Python
         run: |
           python3 -m py_compile scripts/kvm_monitor.py
+          python3 -m py_compile scripts/inc017_crash_service.py
           python3 -m py_compile infra/app/app.py
 
       - name: Validate Perl
         run: |
           perl -c scripts/log_parser.pl
+
+      - name: Build INC018 demo packages
+        run: |
+          bash scripts/inc018_build_demo_packages.sh
+          dpkg-deb --info .lab-artifacts/inc018/support-demo_1.0_all.deb
+          dpkg-deb --info .lab-artifacts/inc018/support-demo_1.1_all.deb
 
       - name: Validate repository whitespace
         run: |

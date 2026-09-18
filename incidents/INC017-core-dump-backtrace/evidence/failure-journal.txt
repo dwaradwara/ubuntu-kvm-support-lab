@@ -1,0 +1,12 @@
+Sep 18 12:40:30 p4-web-01 systemd[1]: Started Canonical gap lab controlled crash demo.
+Sep 18 12:40:30 p4-web-01 python3[12211]: canonical-crash-demo started pid=12211 trigger_crash=0
+Sep 18 12:40:30 p4-web-01 python3[12211]: health=ok
+Sep 18 12:41:00 p4-web-01 python3[12211]: health=ok
+Sep 18 12:41:17 p4-web-01 systemd[1]: Stopping Canonical gap lab controlled crash demo...
+Sep 18 12:41:17 p4-web-01 systemd[1]: canonical-crash-demo.service: Deactivated successfully.
+Sep 18 12:41:17 p4-web-01 systemd[1]: Stopped Canonical gap lab controlled crash demo.
+Sep 18 12:41:17 p4-web-01 systemd[1]: Started Canonical gap lab controlled crash demo.
+Sep 18 12:41:17 p4-web-01 python3[12228]: canonical-crash-demo started pid=12228 trigger_crash=1
+Sep 18 12:41:17 p4-web-01 python3[12228]: controlled failure injection: invoking native crash
+Sep 18 12:41:17 p4-web-01 systemd[1]: canonical-crash-demo.service: Main process exited, code=dumped, status=11/SEGV
+Sep 18 12:41:17 p4-web-01 systemd[1]: canonical-crash-demo.service: Failed with result 'core-dump'.

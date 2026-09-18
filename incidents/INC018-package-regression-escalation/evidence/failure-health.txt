@@ -1,0 +1,4 @@
+*   Trying 127.0.0.1:18080...
+* connect to 127.0.0.1 port 18080 failed: Connection refused
+* Failed to connect to 127.0.0.1 port 18080 after 0 ms: Connection refused
+* Closing connection 0

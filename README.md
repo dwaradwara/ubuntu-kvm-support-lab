@@ -3,13 +3,13 @@
 [![Validate Support Automation](https://github.com/dwaradwara/ubuntu-kvm-support-lab/actions/workflows/validate.yml/badge.svg)](https://github.com/dwaradwara/ubuntu-kvm-support-lab/actions/workflows/validate.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A hands-on Ubuntu/KVM production-support lab built around **16 controlled failure, diagnosis, recovery, and validation scenarios**.
+A hands-on Ubuntu/KVM production-support lab built around **18 controlled failure, diagnosis, recovery, and validation scenarios**.
 
-The project demonstrates evidence-driven troubleshooting across **KVM/QEMU, libvirt, Linux services, networking, storage, PostgreSQL, monitoring, security, and kernel/resource layers**.
+The project demonstrates evidence-driven troubleshooting across **KVM/QEMU, libvirt, Linux services, networking, storage, PostgreSQL, monitoring, security, kernel/resource layers, native crash analysis, and package-regression handling**.
 
 Each incident follows a support workflow of **Symptom → Evidence → Root Cause → Fix → Validation**, rather than stopping when a service simply starts working again.
 
-**Start here:** [INC009 — cloud-init recovery](incidents/INC009-cloud-init-datasource-recovery/incident-report.md) · [INC012 — database storage exhaustion](incidents/INC012-full-stack-degradation/incident-report.md) · [INC016 — UDP receive-buffer overflow](incidents/INC016-udp-receive-buffer-overflow/incident-report.md)
+**Start here:** [INC009 — cloud-init recovery](incidents/INC009-cloud-init-datasource-recovery/incident-report.md) · [INC012 — database storage exhaustion](incidents/INC012-full-stack-degradation/incident-report.md) · [INC016 — UDP receive-buffer overflow](incidents/INC016-udp-receive-buffer-overflow/incident-report.md) · [INC017 — core-dump/GDB analysis](incidents/INC017-core-dump-backtrace/incident-report.md) · [INC018 — package regression/rollback](incidents/INC018-package-regression-escalation/incident-report.md)
 
 ---
 
@@ -103,6 +103,49 @@ A controlled Linux networking incident that correlated application packet loss d
 
 ---
 
+
+### [INC017 — systemd Service Crash and Core-Dump Backtrace](incidents/INC017-core-dump-backtrace/incident-report.md)
+
+A controlled native crash was introduced into a systemd-managed Python service and investigated with `journalctl`, `coredumpctl`, and GDB.
+
+**Failure evidence**
+- systemd: `Result: core-dump`
+- process termination: `SIGSEGV`
+- core captured by systemd-coredump
+- GDB backtrace through `_ctypes`, `libffi`, and `__strlen_sse2`
+
+**Recovery validation**
+- fault-triggering configuration removed
+- service returned to `active (running)`
+- healthy process and journal output confirmed
+
+**Why it matters:** demonstrates explicit Linux crash-dump and native stack-trace troubleshooting, not just service restart recovery.
+
+---
+
+### [INC018 — Package Regression, Rollback, and Support Escalation](incidents/INC018-package-regression-escalation/incident-report.md)
+
+A deterministic Debian-package regression simulation correlated a package upgrade with an immediate service outage.
+
+**Failure evidence**
+- `support-demo 1.0` healthy and returning HTTP 200
+- `dpkg.log` records upgrade `1.0 -> 1.1`
+- service exits with status `42`
+- port `18080` no longer listens
+- health request returns connection refused
+
+**Recovery validation**
+- rollback to known-good `1.0`
+- service returns to `active (running)`
+- health endpoint returns `status=ok version=1.0`
+- temporary package hold applied
+
+The incident also includes a customer update, engineering escalation, and technical notice.
+
+**Why it matters:** demonstrates Ubuntu package-change correlation, rollback, expectation-setting, and escalation workflow.
+
+---
+
 ## Lab Architecture
 
 The repository contains two related environments.
@@ -113,7 +156,7 @@ The repository contains two related environments.
 - `vm-db-01` — `192.168.100.20` — PostgreSQL
 - `vm-monitor-01` — `192.168.100.30` — Prometheus + Alertmanager
 
-This environment is retained for the 16 documented troubleshooting scenarios.
+This environment is retained for the documented troubleshooting scenarios.
 
 ### Reproducible IaC environment
 
@@ -127,7 +170,7 @@ Provisioning is defined under `infra/tofu/` and `infra/cloud-init/` using OpenTo
 
 ---
 
-## All 16 Incidents
+## All 18 Incidents
 
 | ID | Incident | Primary Area |
 |---|---|---|
@@ -147,6 +190,8 @@ Provisioning is defined under `infra/tofu/` and `infra/cloud-init/` using OpenTo
 | [INC014](incidents/INC014-apparmor-policy-block/incident-report.md) | AppArmor policy block | Security |
 | [INC015](incidents/INC015-cgroup-oom-kill/incident-report.md) | Controlled cgroup OOM kill | Kernel / Memory |
 | [INC016](incidents/INC016-udp-receive-buffer-overflow/incident-report.md) | UDP receive-buffer overflow | Kernel / Networking |
+| [INC017](incidents/INC017-core-dump-backtrace/incident-report.md) | systemd service crash and core-dump backtrace | Crash Analysis / systemd / GDB |
+| [INC018](incidents/INC018-package-regression-escalation/incident-report.md) | Package regression, rollback, and escalation | Package Management / Support |
 
 All incidents are **controlled lab failures**, not customer production outages.
 
@@ -209,6 +254,8 @@ For a quick technical review, start with:
 - INC009 — cloud-init datasource recovery
 - INC012 — multi-VM database storage exhaustion
 - INC016 — UDP receive-buffer overflow
+- INC017 — systemd crash, coredumpctl, and GDB backtrace
+- INC018 — package regression, rollback, and escalation
 
 The original advanced incident environment uses:
 
@@ -249,10 +296,26 @@ The repository includes support tooling in Bash, Python, and Perl.
 | [`vm_snapshot.sh`](scripts/vm_snapshot.sh) | Bash | Manage VM snapshot lifecycle |
 | [`kvm_monitor.py`](scripts/kvm_monitor.py) | Python | Report VM state and flag stopped guests |
 | [`log_parser.pl`](scripts/log_parser.pl) | Perl | Parse Linux logs for support-relevant failure patterns |
+| [`inc017_setup.sh`](scripts/inc017_setup.sh) / [`inc017_validate.sh`](scripts/inc017_validate.sh) | Bash | Reproduce and validate controlled crash troubleshooting |
+| [`inc018_build_demo_packages.sh`](scripts/inc018_build_demo_packages.sh) / [`inc018_collect_package_evidence.sh`](scripts/inc018_collect_package_evidence.sh) | Bash | Build deterministic package-regression fixtures and collect evidence |
 
 The support bundle collects application health, PostgreSQL readiness, filesystem usage, network/listening sockets, Prometheus targets and alerts, Alertmanager state, and libvirt VM/network information.
 
 A successful run produces a timestamped evidence bundle, manifest, compressed archive, and SHA256 checksum.
+
+---
+
+
+## Support Communication & Ubuntu Release Process
+
+The Canonical-focused support layer adds explicit customer and engineering communication artifacts:
+
+- [Customer case lifecycle guide](support/customer-case-lifecycle.md)
+- [Technical notice template](support/technical-notice-template.md)
+- [Engineering escalation template](support/engineering-escalation-template.md)
+- [Ubuntu development/SRU support guide](docs/ubuntu-development-support-guide.md)
+
+INC017 and INC018 include completed customer-facing and engineering-facing artifacts backed by the executed lab evidence.
 
 ---
 
@@ -268,13 +331,14 @@ Checks include:
 - database bootstrap Bash validation
 - Python compilation
 - Perl syntax
+- INC018 demo package build validation
 - Git whitespace validation
 
 ---
 
 ## Skills Demonstrated
 
-**Linux & systems:** systemd, journalctl, filesystems, package management, cloud-init, cgroup v2, AppArmor, Snap
+**Linux & systems:** systemd, journalctl, filesystems, package management, cloud-init, cgroup v2, AppArmor, Snap, systemd-coredump, coredumpctl, GDB
 
 **Virtualization & IaC:** KVM/QEMU, libvirt, qcow2, OpenTofu, cloud-init/NoCloud, VM networking, snapshots, offline recovery
 
@@ -282,7 +346,7 @@ Checks include:
 
 **Database & observability:** PostgreSQL, pg_hba.conf, Prometheus, node_exporter, Alertmanager
 
-**Support engineering:** evidence collection, fault isolation, root-cause analysis, safe remediation, before/after validation, cleanup, Bash/Python/Perl automation
+**Support engineering:** evidence collection, fault isolation, root-cause analysis, package rollback/hold, customer updates, technical notices, engineering escalation, before/after validation, cleanup, Bash/Python/Perl automation
 
 ---
 

@@ -1,0 +1,10 @@
+Sep 18 13:46:55 p4-web-01 systemd[1]: Started INC018 controlled package-regression demo.
+Sep 18 13:47:11 p4-web-01 support-demo[12767]: "GET /health HTTP/1.1" 200 -
+Sep 18 13:47:48 p4-web-01 support-demo[12767]: "GET /health HTTP/1.1" 200 -
+Sep 18 13:47:53 p4-web-01 systemd[1]: Stopping INC018 controlled package-regression demo...
+Sep 18 13:47:53 p4-web-01 systemd[1]: support-demo.service: Deactivated successfully.
+Sep 18 13:47:53 p4-web-01 systemd[1]: Stopped INC018 controlled package-regression demo.
+Sep 18 13:47:53 p4-web-01 systemd[1]: Started INC018 controlled package-regression demo.
+Sep 18 13:47:53 p4-web-01 support-demo[12884]: support-demo 1.1: controlled regression: invalid startup configuration
+Sep 18 13:47:53 p4-web-01 systemd[1]: support-demo.service: Main process exited, code=exited, status=42/n/a
+Sep 18 13:47:53 p4-web-01 systemd[1]: support-demo.service: Failed with result 'exit-code'.
