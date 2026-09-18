@@ -1,6 +1,6 @@
 # INC017 — systemd Service Crash and Core-Dump Backtrace
 
-Status: **planned / not yet executed**
+Status: **completed — retained as the execution plan**
 
 ## Purpose
 
@@ -116,8 +116,8 @@ sudo rm -rf /opt/canonical-gap-lab
 sudo systemctl daemon-reload
 ```
 
-## Final deliverables after execution
+## Final deliverables
 
 Create `incident-report.md`, `customer-update.md`, `engineering-escalation.md`, and sanitized evidence files.
 
-Do not mark the incident complete until those artifacts are backed by actual execution.
+Execution completed on 2026-09-18. See `incident-report.md`, `customer-update.md`, `engineering-escalation.md`, and the sanitized `evidence/` directory.
