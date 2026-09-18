@@ -1,0 +1,51 @@
+           PID: 12228 (python3)
+           UID: 0 (root)
+           GID: 0 (root)
+        Signal: 11 (SEGV)
+     Timestamp: Fri 2026-09-18 12:41:17 UTC (1min 25s ago)
+  Command Line: /usr/bin/python3 /opt/canonical-gap-lab/inc017_crash_service.py
+    Executable: /usr/bin/python3.10
+ Control Group: /system.slice/canonical-crash-demo.service
+          Unit: canonical-crash-demo.service
+         Slice: system.slice
+    Boot ID: [redacted]
+ Machine ID: [redacted]
+      Hostname: p4-web-01
+       Storage: [redacted local coredump path]
+     Disk Size: 663.3K
+       Message: Process 12228 (python3) of user 0 dumped core.
+                
+                Found module linux-vdso.so.1 with build-id: d7661d56e4d14234f4ea47896d4030421e006a29
+                Found module libffi.so.8 with build-id: 59c2a6b204f74f358ca7711d2dfd349d88711f6a
+                Found module _ctypes.cpython-310-x86_64-linux-gnu.so with build-id: 862830da19fc6a76ed037e976f757b3b6aa1e22c
+                Found module ld-linux-x86-64.so.2 with build-id: e6d3f5d4f2a24a5464ab59ae321b9474d70410f8
+                Found module libc.so.6 with build-id: 6a6cb5a80fd5e5bb5bf3aeaa111add98e88843a5
+                Found module libz.so.1 with build-id: 30840b79ac329ecbf1dec0bb60180eed256d319f
+                Found module libexpat.so.1 with build-id: 861906eb6ec3576e524c9ce6bf9ee89f5ebfec80
+                Found module libm.so.6 with build-id: 8b990699d1b7d2d6f354e3587554787a9312400d
+                Found module python3.10 with build-id: c026e145faf2914e3e18bd8451267637976240d5
+                Stack trace of thread 12228:
+                #0  0x00007fe861f0393a __strlen_sse2 (libc.so.6 + 0xba93a)
+                #1  0x00007fe8617665ea n/a (_ctypes.cpython-310-x86_64-linux-gnu.so + 0xe5ea)
+                #2  0x00007fe861752e2e n/a (libffi.so.8 + 0x7e2e)
+                #3  0x00007fe86174f493 n/a (libffi.so.8 + 0x4493)
+                #4  0x00007fe86176bdea n/a (_ctypes.cpython-310-x86_64-linux-gnu.so + 0x13dea)
+                #5  0x00007fe86176b2e2 n/a (_ctypes.cpython-310-x86_64-linux-gnu.so + 0x132e2)
+                #6  0x0000560c62af71bb _PyObject_MakeTpCall (python3.10 + 0x1811bb)
+                #7  0x0000560c62af0837 _PyEval_EvalFrameDefault (python3.10 + 0x17a837)
+                #8  0x0000560c62b010cc _PyFunction_Vectorcall (python3.10 + 0x18b0cc)
+                #9  0x0000560c62af047b _PyEval_EvalFrameDefault (python3.10 + 0x17a47b)
+                #10 0x0000560c62b010cc _PyFunction_Vectorcall (python3.10 + 0x18b0cc)
+                #11 0x0000560c62aeb480 _PyEval_EvalFrameDefault (python3.10 + 0x175480)
+                #12 0x0000560c62bcff76 n/a (python3.10 + 0x259f76)
+                #13 0x0000560c62bcfe46 PyEval_EvalCode (python3.10 + 0x259e46)
+                #14 0x0000560c62bf6958 n/a (python3.10 + 0x280958)
+                #15 0x0000560c62bf0faf n/a (python3.10 + 0x27afaf)
+                #16 0x0000560c62bf66f5 n/a (python3.10 + 0x2806f5)
+                #17 0x0000560c62bf5c38 _PyRun_SimpleFileObject (python3.10 + 0x27fc38)
+                #18 0x0000560c62bf5917 _PyRun_AnyFileObject (python3.10 + 0x27f917)
+                #19 0x0000560c62be9d5e Py_RunMain (python3.10 + 0x273d5e)
+                #20 0x0000560c62bc3e8d Py_BytesMain (python3.10 + 0x24de8d)
+                #21 0x00007fe861e72d90 __libc_start_call_main (libc.so.6 + 0x29d90)
+                #22 0x00007fe861e72e40 __libc_start_main_impl (libc.so.6 + 0x29e40)
+                #23 0x0000560c62bc3d85 _start (python3.10 + 0x24dd85)

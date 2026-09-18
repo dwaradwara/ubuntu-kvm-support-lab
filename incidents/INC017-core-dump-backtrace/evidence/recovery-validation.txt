@@ -1,0 +1,22 @@
+== service state ==
+active
+MainPID=12277
+Result=success
+ActiveState=active
+SubState=running
+
+== recent journal ==
+Sep 18 12:41:17 p4-web-01 systemd[1]: canonical-crash-demo.service: Deactivated successfully.
+Sep 18 12:41:17 p4-web-01 systemd[1]: Stopped Canonical gap lab controlled crash demo.
+Sep 18 12:41:17 p4-web-01 systemd[1]: Started Canonical gap lab controlled crash demo.
+Sep 18 12:41:17 p4-web-01 python3[12228]: canonical-crash-demo started pid=12228 trigger_crash=1
+Sep 18 12:41:17 p4-web-01 python3[12228]: controlled failure injection: invoking native crash
+Sep 18 12:41:17 p4-web-01 systemd[1]: canonical-crash-demo.service: Main process exited, code=dumped, status=11/SEGV
+Sep 18 12:41:17 p4-web-01 systemd[1]: canonical-crash-demo.service: Failed with result 'core-dump'.
+Sep 18 12:45:51 p4-web-01 systemd[1]: Started Canonical gap lab controlled crash demo.
+Sep 18 12:45:51 p4-web-01 python3[12277]: canonical-crash-demo started pid=12277 trigger_crash=0
+Sep 18 12:45:51 p4-web-01 python3[12277]: health=ok
+
+== process ==
+    PID    PPID STAT     ELAPSED CMD
+  12277       1 Ss         00:17 /usr/bin/python3 /opt/canonical-gap-lab/inc017_crash_service.py

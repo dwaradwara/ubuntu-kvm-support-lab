@@ -1,0 +1,13 @@
+● canonical-crash-demo.service - Canonical gap lab controlled crash demo
+     Loaded: loaded (/etc/systemd/system/canonical-crash-demo.service; enabled; vendor preset: enabled)
+     Active: active (running) since Fri 2026-09-18 12:45:51 UTC; 16s ago
+   Main PID: 12277 (python3)
+      Tasks: 1 (limit: 2307)
+     Memory: 3.5M
+        CPU: 12ms
+     CGroup: /system.slice/canonical-crash-demo.service
+             └─12277 /usr/bin/python3 /opt/canonical-gap-lab/inc017_crash_service.py
+
+Sep 18 12:45:51 p4-web-01 systemd[1]: Started Canonical gap lab controlled crash demo.
+Sep 18 12:45:51 p4-web-01 python3[12277]: canonical-crash-demo started pid=12277 trigger_crash=0
+Sep 18 12:45:51 p4-web-01 python3[12277]: health=ok
