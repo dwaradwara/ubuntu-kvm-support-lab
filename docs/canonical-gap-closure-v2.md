@@ -14,13 +14,13 @@ It deliberately avoids creating another large platform project.
 
 ## Planned additions
 
-### INC017 — systemd service crash and core-dump backtrace
+### INC017 — systemd service crash and core-dump backtrace — COMPLETE
 
 Evidence target:
 
 `systemd failure -> journalctl -> coredumpctl -> gdb backtrace -> root cause -> fix -> successful restart -> clean validation`
 
-### INC018 — package regression and support escalation
+### INC018 — package regression and support escalation — PENDING EXECUTION
 
 Evidence target:
 
