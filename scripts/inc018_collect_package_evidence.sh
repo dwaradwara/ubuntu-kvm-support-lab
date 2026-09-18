@@ -5,8 +5,7 @@ echo "== host =="
 if command -v lsb_release >/dev/null 2>&1; then
     lsb_release -ds
 else
-    . /etc/os-release
-    echo "${PRETTY_NAME:-unknown}"
+    awk -F= '$1 == "PRETTY_NAME" {gsub(/^"|"$/, "", $2); print $2}' /etc/os-release
 fi
 uname -a
 
