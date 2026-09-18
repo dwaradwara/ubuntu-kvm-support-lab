@@ -1,6 +1,6 @@
 # INC018 — Package Regression, Rollback, and Support Escalation
 
-Status: **planned / not yet executed**
+Status: **completed — retained as the execution plan**
 
 ## Purpose
 
@@ -101,6 +101,6 @@ sudo dpkg -r support-demo || true
 rm -rf .lab-artifacts/inc018
 ```
 
-## Final deliverables after execution
+## Final deliverables
 
-Create `incident-report.md`, `customer-update.md`, `engineering-escalation.md`, and sanitized evidence files. Do not invent timestamps or outputs.
+Execution completed on 2026-09-18. See `incident-report.md`, `customer-update.md`, `engineering-escalation.md`, `technical-notice.md`, and the sanitized `evidence/` directory.
