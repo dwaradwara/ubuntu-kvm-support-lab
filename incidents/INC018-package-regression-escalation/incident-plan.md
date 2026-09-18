@@ -17,7 +17,7 @@ This incident uses locally built demo Debian packages so the failure is determin
 ## Phase 1 — build demo packages
 
 ```bash
-./scripts/inc018_build_demo_packages.sh
+bash scripts/inc018_build_demo_packages.sh
 ls -lh .lab-artifacts/inc018/
 ```
 
@@ -51,7 +51,7 @@ sudo systemctl restart support-demo.service || true
 systemctl status support-demo.service --no-pager
 journalctl -u support-demo.service -n 80 --no-pager
 curl -v http://127.0.0.1:18080/health
-./scripts/inc018_collect_package_evidence.sh
+bash scripts/inc018_collect_package_evidence.sh
 ```
 
 ## Phase 4 — correlate failure with package change
